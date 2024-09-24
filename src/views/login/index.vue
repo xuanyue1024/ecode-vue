@@ -97,6 +97,7 @@
               if(res.data.code === 1){
                 this.$message.success('登录成功，正在跳转');
                 window.localStorage.setItem('token', res.data.data.token);
+                this.$router.push({ path: '/' })
               }else{
                 this.$message.error(res.data.msg);
               }
