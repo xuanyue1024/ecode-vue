@@ -2,7 +2,7 @@
 <div class="main">
   <el-container>
     <el-header>
-      <el-menu :default-active="activeIndex" class="el-menu-demo" mode="horizontal" @select="handleSelect">
+      <el-menu :default-active="activeIndex" class="el-menu-demo" mode="horizontal">
         <el-menu-item index="">
           <el-radio-group v-model="isCollapse" style="margin-bottom: 20px;">
             <el-radio-button :label="false">展开</el-radio-button>
@@ -22,12 +22,31 @@
             <el-menu-item index="2-4-3">选项3</el-menu-item>
           </el-submenu>
         </el-submenu>
-        <el-menu-item index="3" style="float: right">消息中心</el-menu-item>
+
+        <el-menu-item index="" style="float: right">
+          <el-dropdown trigger="click">
+            <span class="el-dropdown-link">
+              点我查看  <el-image
+                        style="width: 38px; height: 38px; border-radius: 50%;"
+                        src="https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg"
+                        fit="contain">
+                    </el-image>
+            </span>
+
+            <el-dropdown-menu slot="dropdown">
+              <el-dropdown-item class="clearfix">评论<el-badge class="mark" :value="12" />
+              </el-dropdown-item>
+              <el-dropdown-item class="clearfix">回复<el-badge class="mark" :value="3" />
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </el-dropdown>
+        </el-menu-item>
+        <!-- <el-menu-item index="3" style="float: right">消息中心</el-menu-item> -->
       </el-menu>
     </el-header>
     <el-container>
       <el-aside style="overflow: hidden;width: auto;height: 100%">
-        <el-menu default-active="1-4-1" class="el-menu-vertical-demo" @open="handleOpen" @close="handleClose" :collapse="isCollapse">
+        <el-menu default-active="1-4-1" class="el-menu-vertical-demo" :collapse="isCollapse">
           <el-submenu index="1">
             <template slot="title">
               <i class="el-icon-location"></i>
