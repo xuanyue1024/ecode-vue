@@ -8,7 +8,7 @@ import router from "@/router";
 
 // 创建 axios 实例
 const httptool = axios.create({
-    timeout: 6000,
+    timeout: 300000,
 });
 
 // 传送 json 格式的 post 请求

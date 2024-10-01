@@ -1,5 +1,5 @@
 const { defineConfig } = require('@vue/cli-service')
-
+const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin')
 module.exports = defineConfig({
   // 设置需要转译的依赖包
   transpileDependencies: true,
@@ -9,7 +9,7 @@ module.exports = defineConfig({
     // 指定开发服务器的端口
     port: 80,
     // 启动后自动打开浏览器
-    open: true,
+    open: false,
     // 启用热模块替换，自动更新模块而无需手动刷新
     hot: true,
     // 代理配置，用于解决跨域问题
@@ -30,5 +30,26 @@ module.exports = defineConfig({
         logLevel: 'debug'
       }
     }
+  },
+  configureWebpack: {
+    entry: {
+      'editor.worker': 'monaco-editor/esm/vs/editor/editor.worker.js'
+    },
+    plugins: [
+      new MonacoWebpackPlugin({
+        languages: ["json", "xml", "yaml", "python", 'java'],
+        features: ["coreCommands", "find", "format", "folding", 'smartSelect', 'snippets', 'suggest', 'hover']
+      }),
+      /* new MonacoLocalesPlugin({
+        //设置支持的语言
+        languages: ["es", "zh-cn"],
+        //默认语言
+        defaultLanguage: "zh-cn",
+        //打印不匹配的文本
+        logUnmatched: false,
+        //自定义文本翻译
+        mapLanguages: { "zh-cn": { "Peek References": "查找引用", "Go to Symbol...": "跳到变量位置", "Command Palette": "命令面板" } }
+      }) */
+    ]
   }
 })
