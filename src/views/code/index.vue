@@ -39,7 +39,7 @@
             <el-row :gutter="40">
               <el-col :span="12">
                 <div>自测输入值</div>
-                <div><el-input type="textarea" :rows="4" placeholder="请输入内容" v-model="inputtext"></el-input></div>
+                <div><el-input type="textarea" :rows="4" placeholder="请输入内容" v-model="codeDebugForm.input"></el-input></div>
               </el-col>
               <el-col :span="12">
                 <div>结果</div>
@@ -86,7 +86,6 @@ export default {
         autoIndent: true, // 自动缩进
         language: 'java',
       },
-      inputtext:  '',
       resultValue: '',//输出结果
       // 编辑器对象
       monacoEditor: {},
@@ -129,7 +128,7 @@ export default {
     },
     //调试按钮网络请求
     debugBtn() {
-      
+      this.resultValue = '';
       this.isDebugLoad = true;
       this.isDebugDisabled = true;
       this.codeDebugForm.code = this.getVal();
@@ -137,8 +136,10 @@ export default {
       debugCode(this.codeDebugForm).then(res => {
         if(res.data.code === 1){
           this.resultValue = res.data.data;
+          this.$notify({title: '成功',message: '代码运行成功',type: 'success'});
         }else{
-          this.$message.error(res.data.msg);
+          this.$notify.error({title: '代码运行错误',message: res.data.msg});
+          this.resultValue = res.data.msg;
         }
         this.isDebugLoad = false;
         this.isDebugDisabled = false;
