@@ -9,4 +9,4 @@ export const registerByEmail = (data: any) =>
 
 //获取邮箱验证码
 export const getEmailCode = (email: string) =>
-  getRequest(`/api/getCaptcha?email=${email}`)
+  getRequest(`/api/open/captcha/getCaptcha?email=${email}`)

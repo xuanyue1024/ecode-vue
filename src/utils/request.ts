@@ -59,8 +59,8 @@ httptool.interceptors.response.use(
             router.push('/login');
         } else {
             Message.error('网络好像有点问题');
-            return Promise.reject(error);
         }
+        return new Promise(() => {console.log(error.response)});// 返回一个未完成的 Promise，阻止外部继续处理
     }
 );
 
