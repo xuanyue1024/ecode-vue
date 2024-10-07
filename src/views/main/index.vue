@@ -23,8 +23,8 @@
           </el-submenu>
         </el-submenu>
 
-        <el-menu-item index="" style="float: right">
-          <el-dropdown trigger="click">
+        <el-submenu index="img" style="float: right">
+          <template slot="title">
             <span class="el-dropdown-link">
               点我查看  <el-image
                         style="width: 38px; height: 38px; border-radius: 50%;"
@@ -32,15 +32,11 @@
                         fit="contain">
                     </el-image>
             </span>
-
-            <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item class="clearfix">评论<el-badge class="mark" :value="12" />
-              </el-dropdown-item>
-              <el-dropdown-item class="clearfix">回复<el-badge class="mark" :value="3" />
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </el-dropdown>
-        </el-menu-item>
+          </template>
+          <el-menu-item index="2-1">选项1</el-menu-item>
+          <el-menu-item index="2-2">选项2</el-menu-item>
+          <el-menu-item index="logout" @click="logout">退出登录</el-menu-item>
+        </el-submenu>
         <!-- <el-menu-item index="3" style="float: right">消息中心</el-menu-item> -->
       </el-menu>
     </el-header>
@@ -97,6 +93,14 @@ export default Vue.extend({
       isCollapse: true,
       activeIndex: '1',
       activeIndex2: '1'
+    }
+  },
+  methods: {
+    //退出登录
+    logout(){
+      window.localStorage.removeItem('token');
+      this.$message.success('退出登录成功');
+      this.$router.push('/login');
     }
   }
 });
