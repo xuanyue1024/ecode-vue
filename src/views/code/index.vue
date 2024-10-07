@@ -85,10 +85,15 @@ export default {
         roundedSelection: true, // 右侧不显示编辑器预览框
         autoIndent: true, // 自动缩进
         language: 'java',
+        automaticLayout: true, // 自动布局
+        minimap: {
+        enabled: true // 是否启用预览图
+        }, // 预览图设置
+        fontSize: 18//字体大小
       },
       resultValue: '',//输出结果
       // 编辑器对象
-      monacoEditor: {},
+      monacoEditor: {},//代码编辑器对象
       isDebugLoad: false,//是否开启调试按钮加载状态
       isDebugDisabled: false,//是否开启调试按钮禁止点击状态
       codeDebugForm: {
