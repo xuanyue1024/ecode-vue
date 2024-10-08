@@ -2,22 +2,35 @@
 <div class="code">
   <el-container>
     <el-header style="height: 7vh;width: 100%;padding:0px">
-      <el-menu style="width: 100%" :default-active="activeIndex2" class="el-menu-demo" mode="horizontal" @select="handleSelect" background-color="#545c64" text-color="#fff" active-text-color="#ffd04b">
+      <el-menu style="width: 100%" :default-active="activeIndex2" class="el-menu-demo" mode="horizontal" @select="handleSelect" background-color="#ffffff" text-color="#1E1E1E" active-text-color="#000000">
         <el-menu-item index="1">处理中心</el-menu-item>
-        <el-submenu index="2">
-          <template slot="title">我的工作台</template>
-          <el-menu-item index="2-1">选项1</el-menu-item>
-          <el-menu-item index="2-2">选项2</el-menu-item>
-          <el-menu-item index="2-3">选项3</el-menu-item>
-          <el-submenu index="2-4">
-            <template slot="title">选项4</template>
-            <el-menu-item index="2-4-1">选项1</el-menu-item>
-            <el-menu-item index="2-4-2">选项2</el-menu-item>
-            <el-menu-item index="2-4-3">选项3</el-menu-item>
-          </el-submenu>
-        </el-submenu>
         <el-menu-item index="3" disabled>消息中心</el-menu-item>
         <el-menu-item index="4"><a href="https://www.ele.me" target="_blank">订单管理</a></el-menu-item>
+        <el-menu-item index="s1" style="float: right;width: 150px;">
+          
+        </el-menu-item>
+        <el-menu-item index="s2" style="float: right;width: 150px;">
+          
+        </el-menu-item>
+        <el-menu-item index="s3" style="float: right;width: 150px;">
+          <el-select size="small" v-model="codeEditorSetting.theme" placeholder="主题" @change="() => {this.monacoEditor.updateOptions({ theme: this.codeEditorSetting.theme })}">
+            <el-option value="vs-dark" label="vs-dark"></el-option>
+            <el-option value="hc-black" label="hc-black"></el-option>
+            <el-option value="vs" label="vs"></el-option>
+          </el-select>
+          <el-select size="small" v-model="codeEditorSetting.language" placeholder="语言" @change="() => {this.monacoEditor.updateOptions({ language: this.codeEditorSetting.language })}">
+            <el-option value="java" label="java"></el-option>
+            <el-option value="python" label="python"></el-option>
+            <el-option value="c" label="c"></el-option>
+          </el-select>
+          <el-select size="small" v-model="codeEditorSetting.fontSize" placeholder="字体大小" @change="() => {this.monacoEditor.updateOptions({ fontSize: this.codeEditorSetting.fontSize })}">
+            <el-option value="12px" label="12px"></el-option>
+            <el-option value="14px" label="14px"></el-option>
+            <el-option value="16px" label="16px"></el-option>
+            <el-option value="18px" label="18px"></el-option>
+            <el-option value="20px" label="20px"></el-option>
+          </el-select>
+        </el-menu-item>
       </el-menu>
     </el-header>
     <el-container>
@@ -84,22 +97,27 @@ export default {
         theme: 'vs-dark', // 编辑器主题：vs, hc-black, or vs-dark，更多选择详见官网
         roundedSelection: true, // 右侧不显示编辑器预览框
         autoIndent: true, // 自动缩进
-        language: 'java',
+        language: 'python',
         automaticLayout: true, // 自动布局
         minimap: {
         enabled: true // 是否启用预览图
         }, // 预览图设置
-        fontSize: 18//字体大小
+        fontSize: '18px'//字体大小
       },
       resultValue: '',//输出结果
       // 编辑器对象
       monacoEditor: {},//代码编辑器对象
       isDebugLoad: false,//是否开启调试按钮加载状态
       isDebugDisabled: false,//是否开启调试按钮禁止点击状态
-      codeDebugForm: {
+      codeDebugForm: {//调试表单
         code: '',
         type: '',
         input: ''
+      },
+      codeEditorSetting: {//编辑器栏设置
+        language: 'java',//语言
+        fontSize: '18px',//字体大小
+        theme: 'vs-dark'
       }
     }
   },
