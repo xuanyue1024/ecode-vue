@@ -1,8 +1,8 @@
 <template>
 <div class="code">
   <el-container>
-    <el-header style="height: 7vh;width: 100%;padding:0px">
-      <el-menu style="width: 100%" :default-active="activeIndex2" class="el-menu-demo" mode="horizontal" @select="handleSelect" background-color="#ffffff" text-color="#1E1E1E" active-text-color="#000000">
+    <el-header style="height: auto;width: 100%;padding:0px">
+      <el-menu style="width: 100%" :default-active="activeIndex2" class="el-menu-demo" mode="horizontal" @select="handleSelect" background-color="transparent" text-color="#1E1E1E" active-text-color="#000000">
         <el-menu-item index="1">处理中心</el-menu-item>
         <el-menu-item index="3" disabled>消息中心</el-menu-item>
         <el-menu-item index="4"><a href="https://www.ele.me" target="_blank">订单管理</a></el-menu-item>
@@ -34,36 +34,43 @@
       </el-menu>
     </el-header>
     <el-container>
-      <el-aside style="height: 93vh;width: 400px;overflow: hidden">
-        <h1>3123123</h1>
-        <h2>3123123123123123123123123</h2>
-        <h3>32123123123123123123123123</h3>
+      <el-aside style="width: 400px;overflow: hidden;padding-bottom: 5px;">
+        <el-card style="height: 100%;margin: 5px;" shadow="hover">
+          <h1>3123123</h1>
+          <h2>3123123123123123123123123</h2>
+          <h3>32123123123123123123123123</h3>
+        </el-card>
       </el-aside>
       <el-container>
-        <el-main style="overflow-x: hidden;width: auto;padding: 0px">
-          <div ref="container" class="monaco-editor" style="height: 100%;text-align:left"></div>
+        <el-main style="overflow-x: hidden;width: auto;padding: 0px;">
+          <el-card shadow="hover" body-style="padding: 0px;" style="margin: 5px;width: 100%;height: 62vh;">
+            <div ref="container" class="monaco-editor" style="height: 62vh;text-align:left;margin: 0px;margin-top: 5px;"></div>
+          </el-card>
         </el-main>
-        <el-footer style="height: 25vh;text-align:left;background-color:#000000">
-          <div>
+        <el-footer style="height: 27vh;text-align:left;margin: 5px;padding: 0px;">
+          <el-card shadow="hover" style="width: 100%;height: 100%;" body-style="padding: 10px;">
+            <div>
             <el-button type="text">测试结果</el-button>
             <el-button type="text" disabled>自测结果</el-button>
-          </div>
-          <div>
-            <el-row :gutter="40">
-              <el-col :span="12">
-                <div>自测输入值</div>
-                <div><el-input type="textarea" :rows="4" placeholder="请输入内容" v-model="codeDebugForm.input"></el-input></div>
-              </el-col>
-              <el-col :span="12">
-                <div>结果</div>
-                <div><el-input type="textarea" :rows="4" placeholder="请输入内容" v-model="resultValue"></el-input></div>
-              </el-col>
-            </el-row>
-          </div>
-          <div style="text-align:right">
-            <el-button type="primary" @click="debugBtn()" :loading="isDebugLoad" :disabled="isDebugDisabled" plain>调试</el-button><el-button type="primary">提交</el-button>
-          </div>
+            </div>
+            <div>
+              <el-row :gutter="40">
+                <el-col :span="12">
+                  <div>自测输入值</div>
+                  <div><el-input type="textarea" :rows="4" placeholder="请输入内容" v-model="codeDebugForm.input"></el-input></div>
+                </el-col>
+                <el-col :span="12">
+                  <div>结果</div>
+                  <div><el-input type="textarea" :rows="4" placeholder="请输入内容" v-model="resultValue"></el-input></div>
+                </el-col>
+              </el-row>
+            </div>
+            <div style="text-align:right;margin-top: 10px;">
+              <el-button type="primary" @click="debugBtn()" :loading="isDebugLoad" :disabled="isDebugDisabled" plain>调试</el-button><el-button type="primary">提交</el-button>
+            </div>
+          </el-card>
         </el-footer>
+      
       </el-container>
     </el-container>
   </el-container>
@@ -94,7 +101,7 @@ export default {
     System.out.println("Hello, World!");
   }
 }`, // 编辑器的值
-        theme: 'vs-dark', // 编辑器主题：vs, hc-black, or vs-dark，更多选择详见官网
+        theme: 'vs', // 编辑器主题：vs, hc-black, or vs-dark，更多选择详见官网
         roundedSelection: true, // 右侧不显示编辑器预览框
         autoIndent: true, // 自动缩进
         language: 'python',
@@ -117,7 +124,7 @@ export default {
       codeEditorSetting: {//编辑器栏设置
         language: 'java',//语言
         fontSize: '18px',//字体大小
-        theme: 'vs-dark'
+        theme: 'vs'
       }
     }
   },
@@ -174,5 +181,11 @@ export default {
 </script>
 
 <style>
-
+  body {
+    background: #F0F0F0;
+    overflow: scroll;
+  }
+  body::-webkit-scrollbar { /* WebKit browsers */
+     display: none
+  }
 </style>
