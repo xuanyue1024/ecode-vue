@@ -57,11 +57,15 @@
               <el-row :gutter="40">
                 <el-col :span="12">
                   <div>自测输入值</div>
-                  <div><el-input type="textarea" :rows="4" placeholder="请输入内容" v-model="codeDebugForm.input"></el-input></div>
+                  <el-card body-style="padding: 0px;" style="margin-top: 8px;" shadow="hover">
+                    <div ref="input" style="height: 11vh;"></div>
+                  </el-card>
                 </el-col>
                 <el-col :span="12">
                   <div>结果</div>
-                  <div><el-input type="textarea" :rows="4" placeholder="请输入内容" v-model="resultValue"></el-input></div>
+                  <el-card body-style="padding: 0px;" style="margin-top: 8px;" shadow="hover">
+                    <div ref="output" style="height: 11vh;"></div>
+                  </el-card>
                 </el-col>
               </el-row>
             </div>
@@ -100,9 +104,9 @@ export default {
   public static void main(String[] args) {
     System.out.println("Hello, World!");
   }
-}`, // 编辑器的值
+}`, // 代码编辑器的值
         theme: 'vs', // 编辑器主题：vs, hc-black, or vs-dark，更多选择详见官网
-        roundedSelection: true, // 右侧不显示编辑器预览框
+        roundedSelection: true, // 选中圆角
         autoIndent: true, // 自动缩进
         language: 'python',
         automaticLayout: true, // 自动布局
@@ -111,9 +115,18 @@ export default {
         }, // 预览图设置
         fontSize: '18px'//字体大小
       },
-      resultValue: '',//输出结果
+      //输入框与输出框编辑器配置
+      inoutOpts: {
+      language: 'customLang', // 设置语言
+      theme: 'vs',
+      lineNumbers: 'off', // 隐藏左侧行号
+      minimap: { enabled: false }, // 取消右侧的预览图
+      contextMenu: false // 禁用右键菜单
+      },
       // 编辑器对象
       monacoEditor: {},//代码编辑器对象
+      outputEditor: {},//调试输入框对象
+      inputEditor: {},//调试输出框对象
       isDebugLoad: false,//是否开启调试按钮加载状态
       isDebugDisabled: false,//是否开启调试按钮禁止点击状态
       codeDebugForm: {//调试表单
@@ -137,7 +150,33 @@ export default {
     }
   },
   mounted() {
-    this.init()
+    this.init();
+    // 注册自定义语言
+    monaco.languages.register({ id: 'customLang' });
+
+    // 定义语法高亮规则
+    monaco.languages.setMonarchTokensProvider('customLang', {
+      tokenizer: {
+        root: [
+          [/\/[^\s]+\.\w+/, 'type'], // 匹配路径格式
+          // 匹配 error 关键字并赋予 'keyword' 样式
+          [/error/, 'keyword'],
+          // 匹配 ^ 符号并赋予 'caret' 样式
+          [/\^/, 'string'],
+          // 其他规则...
+          [/[a-zA-Z_]\w*/, 'identifier'], // 匹配标识符
+          [/\d+/, 'number'], // 匹配数字
+          [/[{}()[]/, 'delimiter'], // 匹配括号，移除转义
+          [/"([^"]|\\.)*"/, 'string'], // 匹配字符串，确保不使用不必要的转义
+          [/'([^']|\\.)*'/, 'string'], // 匹配单引号字符串
+        ],
+      },
+    });
+    //初始化输入输出框
+    this.outputEditor = monaco.editor.create(this.$refs.output, this.inoutOpts);
+    this.outputEditor.updateOptions({ readOnly: true });
+    this.inputEditor = monaco.editor.create(this.$refs.input, this.inoutOpts);
+
   },
   methods: {
     init() {
@@ -158,18 +197,19 @@ export default {
     },
     //调试按钮网络请求
     debugBtn() {
-      this.resultValue = '';
+      this.outputEditor.setValue('');
       this.isDebugLoad = true;
       this.isDebugDisabled = true;
       this.codeDebugForm.code = this.getVal();
+      this.codeDebugForm.input = this.inputEditor.getValue();
       console.log(JSON.stringify(this.codeDebugForm));
       debugCode(this.codeDebugForm).then(res => {
         if(res.data.code === 1){
-          this.resultValue = res.data.data;
+          this.outputEditor.setValue(res.data.data);
           this.$notify({title: '成功',message: '代码运行成功',type: 'success'});
         }else{
           this.$notify.error({title: '代码运行错误',message: res.data.msg});
-          this.resultValue = res.data.msg;
+          this.outputEditor.setValue(res.data.msg);
         }
         this.isDebugLoad = false;
         this.isDebugDisabled = false;
