@@ -108,7 +108,7 @@ export default {
         theme: 'vs', // 编辑器主题：vs, hc-black, or vs-dark，更多选择详见官网
         roundedSelection: true, // 选中圆角
         autoIndent: true, // 自动缩进
-        language: 'python',
+        language: 'java',
         automaticLayout: true, // 自动布局
         minimap: {
         enabled: true // 是否启用预览图
@@ -202,6 +202,7 @@ export default {
       this.isDebugDisabled = true;
       this.codeDebugForm.code = this.getVal();
       this.codeDebugForm.input = this.inputEditor.getValue();
+      this.codeDebugForm.type = this.codeEditorSetting.language;
       console.log(JSON.stringify(this.codeDebugForm));
       debugCode(this.codeDebugForm).then(res => {
         if(res.data.code === 1){
