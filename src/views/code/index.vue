@@ -18,10 +18,10 @@
             <el-option value="hc-black" label="hc-black"></el-option>
             <el-option value="vs" label="vs"></el-option>
           </el-select>
-          <el-select size="small" v-model="codeEditorSetting.language" placeholder="语言" @change="() => {this.monacoEditor.updateOptions({ language: this.codeEditorSetting.language })}">
+          <el-select size="small" v-model="codeEditorSetting.language" placeholder="语言" @change="() => {this.monacoEditor.updateOptions({ language: this.codeEditorSetting.language });this.monacoEditor.setValue($store.state.exampleCode.get(this.codeEditorSetting.language))}">
             <el-option value="java" label="java"></el-option>
-            <el-option value="python" label="python"></el-option>
-            <el-option value="c" label="c"></el-option>
+            <el-option value="python3" label="python3"></el-option>
+            <el-option value="cpp" label="cpp"></el-option>
           </el-select>
           <el-select size="small" v-model="codeEditorSetting.fontSize" placeholder="字体大小" @change="() => {this.monacoEditor.updateOptions({ fontSize: this.codeEditorSetting.fontSize })}">
             <el-option value="12px" label="12px"></el-option>
