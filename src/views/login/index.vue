@@ -173,7 +173,7 @@ export default Vue.extend({
           };
           data.password = md5(this.form.password).toUpperCase();
           loginByPassword(data).then(res => {
-            if (res.data.code === 1) {
+            if (res.data.code === 200) {
               this.$message.success('登录成功，正在跳转');
               window.localStorage.setItem('token', res.data.data.token);
               this.$router.push({
@@ -206,7 +206,7 @@ export default Vue.extend({
           };
           data.password = md5(this.regForm.password).toUpperCase();
           registerByEmail(data).then(res => {
-            if (res.data.code === 1) {
+            if (res.data.code === 200) {
               this.$message.success('注册成功，正在跳转登录');
               this.isLoginPage = true;
             } else {
@@ -227,7 +227,7 @@ export default Vue.extend({
         this.codeLoad = true;
         this.codeDisabled = true;
         getEmailCode(this.regForm.email).then(res => {
-          if (res.data.code === 1) {
+          if (res.data.code === 200) {
             this.codeLoad = false;
             this.startCountdown();
           } else {

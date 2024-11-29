@@ -15,6 +15,23 @@ const httptool = axios.create({
 export const postRequest = (url: string, params: any) => {
     return httptool.post(`${url}`, params);
 }
+// 传送表单格式的 post 请求
+export const postRequestForm = (url: string, params: { [key: string]: any }) => {
+    const formData = new FormData();
+    for (const key in params) {
+        // eslint-disable-next-line no-prototype-builtins
+        if (params.hasOwnProperty(key)) {
+            formData.append(key, params[key]);
+        }
+    }
+
+    return httptool.post(`${url}`, formData, {
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded' // 或者 'multipart/form-data'
+        }
+    });
+}
+
 
 // 传送 json 格式的 put 请求
 export const putRequest = (url: string, params: any) => {
