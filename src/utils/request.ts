@@ -43,6 +43,12 @@ export const getRequest = (url: string) => {
     return httptool.get(`${url}`);
 }
 
+// 传送表单格式的 get 请求
+export const getRequestForm = (url: string, params: { [key: string]: any }) => {
+    const queryString = new URLSearchParams(params).toString();
+    return httptool.get(`${url}?${queryString}`);
+}
+
 // 传送 json 格式的 delete 请求
 export const deleteRequest = (url: string, params: any) => {
     return httptool.delete(`${url}`, { data: params });

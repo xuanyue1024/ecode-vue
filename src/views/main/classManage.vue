@@ -17,12 +17,16 @@
         </div>
       </el-dialog>
     </div>
-    <el-table :data="tableData" stripe style="width: 100%">
-      <el-table-column label="日期" prop="date" width="180">
+    <el-table :data="records" stripe style="width: 100%">
+      <el-table-column label="id" prop="id" width="180">
       </el-table-column>
-      <el-table-column label="姓名" prop="name" width="180">
+      <el-table-column label="班级名称" prop="name" width="180">
       </el-table-column>
-      <el-table-column label="地址" prop="address">
+      <el-table-column label="邀请码" prop="invitationCode">
+      </el-table-column>
+      <el-table-column label="更新时间" prop="updateTime">
+      </el-table-column>
+      <el-table-column label="创建时间" prop="createTime">
       </el-table-column>
       <el-table-column fixed="right" label="操作" width="100">
         <template slot-scope="scope">
@@ -34,14 +38,17 @@
     <el-pagination
         background
         layout="sizes, prev, pager, next"
-        :total="1000">
+        :total="total"
+        :page-sizes="[5, 10, 20, 30, 40]"
+        @current-change="handleCurrentChange"
+        @size-change="handleSizeChange">
     </el-pagination>
 
   </div>
 </template>
 
 <script>
-import {addClass} from "@/api/class";
+import {addClass, pageClass} from "@/api/class";
 
 export default {
   data() {
@@ -49,38 +56,56 @@ export default {
       dialogAddClassVisible: false,//新增班级弹窗是否显示
       addIsLoading: false,//添加按钮是否加载中
       className: '',//新增班级名称
-      tableData: [{
-        date: '2016-05-02',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1518 弄'
-      }, {
-        date: '2016-05-04',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1517 弄'
-      }, {
-        date: '2016-05-01',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1519 弄'
-      }, {
-        date: '2016-05-03',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1516 弄'
-      }]
+      classQuery: {
+        isAsc: '',
+        name: '',
+        pageNo: 1,
+        pageSize: 10,
+        sortBy: ''
+      },
+      total: 0,
+      records: []
     }
+  },
+  //创建时调用
+  created() {
+    this.queryClass();
   },
   methods: {
     //增加班级请求
     addClass(){
       this.addIsLoading = true;
       addClass({name: this.className}).then(res => {
-        if (res.data.code == 200){
+        if (res.data.code === 200){
           this.$message.success("班级添加成功");
+          this.queryClass();
         }else {
           this.$message.error(res.data.msg);
         }
       });
       this.addIsLoading = false;
       this.dialogAddClassVisible = false;
+    },
+    //分页查询班级信息
+    queryClass(){
+      pageClass(this.classQuery).then(res => {
+        if (res.data.code === 200){
+          this.records = res.data.data.records;
+          this.total = res.data.data.total;
+        } else {
+          this.$message.error(res.data.msg);
+        }
+      })
+    },
+    //页面改变时
+    handleCurrentChange(page){
+      this.classQuery.pageNo = page;
+      this.queryClass();
+    },
+    //每页展示数改变时
+    handleSizeChange(size){
+      this.classQuery.pageSize = size;
+      this.queryClass();
     }
   }
 }
