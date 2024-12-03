@@ -50,8 +50,13 @@ export const getRequestForm = (url: string, params: { [key: string]: any }) => {
 }
 
 // 传送 json 格式的 delete 请求
-export const deleteRequest = (url: string, params: any) => {
-    return httptool.delete(`${url}`, { data: params });
+export const deleteRequest = (url: string, data: any) => {
+    return httptool.delete(`${url}`, { data: data });
+}
+
+// 传送 查询 格式的 delete 请求
+export const deleteRequestForm = (url: string, params: any) => {
+    return httptool.delete(`${url}`, { params: params });
 }
 
 // 请求拦截器

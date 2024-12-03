@@ -1,9 +1,10 @@
 <template>
   <div class="classManage">
     <div style="text-align: left">
-      <el-input placeholder="请输入内容" prefix-icon="el-icon-search" v-model="input2" style="max-width: 200px"/>
-      <el-button type="primary" icon="el-icon-search" style="margin-left: 10px">搜索</el-button>
+      <el-input placeholder="请输入内容" prefix-icon="el-icon-search" v-model="classQuery.name" style="max-width: 200px"/>
+      <el-button type="primary" icon="el-icon-search" style="margin-left: 10px" @click="queryClass">搜索</el-button>
       <el-button type="primary" icon="el-icon-plus" @click="dialogAddClassVisible = true" :loading="addIsLoading">添加班级</el-button>
+      <el-button type="danger" v-if="deleteVisible" style="margin-left: 10px" @click="handleDelete">删除</el-button>
       <!--  新增班级表单  -->
       <el-dialog title="新增班级" :visible.sync="dialogAddClassVisible" width="400px">
         <el-form>
@@ -17,9 +18,10 @@
         </div>
       </el-dialog>
     </div>
-    <el-table :data="records" stripe style="width: 100%">
-      <el-table-column label="id" prop="id" width="180">
-      </el-table-column>
+    <el-table :data="records" style="width: 100%;margin: 5px" height="660" @selection-change="handleSelectionChange">
+      <el-table-column type="selection"></el-table-column>
+<!--      <el-table-column label="id" prop="id" width="180">
+      </el-table-column>-->
       <el-table-column label="班级名称" prop="name" width="180">
       </el-table-column>
       <el-table-column label="邀请码" prop="invitationCode">
@@ -49,7 +51,7 @@
 </template>
 
 <script>
-import {addClass, pageClass} from "@/api/class";
+import {addClass, deleteBatchClass, pageClass} from "@/api/class";
 
 export default {
   data() {
@@ -65,7 +67,12 @@ export default {
         sortBy: ''
       },
       total: 0,
-      records: []
+      records: [],
+      //按钮是否显示：
+      deleteVisible: false,//删除按钮
+
+      //被选中项列表
+      multipleSelection: []
     }
   },
   //创建时调用
@@ -107,7 +114,41 @@ export default {
     handleSizeChange(size){
       this.classQuery.pageSize = size;
       this.queryClass();
+    },
+    //多选改变时触发
+    handleSelectionChange(val){
+      console.log(val);
+      this.multipleSelection = val;
+      if (val.length > 0){
+        this.deleteVisible = true;
+      }else {
+        this.deleteVisible = false;
+      }
+    },
+    //删除班级批量
+    handleDelete(){
+      const array = [];
+      this.multipleSelection.forEach(m => array.push(m.id));
+      //弹出确认删除框
+      this.$confirm('此操作将不可恢复, 是否继续?', '警告', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        deleteBatchClass(array.join(",")).then(res => {
+          if (res.data.code === 200){
+            this.$message({type: 'success', message: '删除成功!'});
+            this.queryClass();
+          }
+        })
+      }).catch(() => {
+        this.$message({
+          type: 'info',
+          message: '已取消删除'
+        });
+      });
     }
+
   }
 }
 </script>

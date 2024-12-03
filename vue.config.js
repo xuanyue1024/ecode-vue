@@ -16,7 +16,7 @@ module.exports = defineConfig({
     proxy: {
       '/api': {
         // 代理目标地址，从环境变量中读取
-        target: 'http://localhost:8080',
+        target: process.env.VUE_APP_API_URL,
         // 禁用 WebSocket 代理
         ws: false,
         // 允许不安全的 HTTPS 请求
