@@ -36,6 +36,7 @@
       </el-table-column>
     </el-table>
     <el-pagination
+        class="paginationClass"
         background
         layout="sizes, prev, pager, next"
         :total="total"
@@ -112,4 +113,11 @@ export default {
 </script>
 <style>
 
+.paginationClass {
+  position: fixed;
+  bottom: 0;
+  height: 40px;
+  width: 100%;
+  text-align: center;
+}
 </style>
