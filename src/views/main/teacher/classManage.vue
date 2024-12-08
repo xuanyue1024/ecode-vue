@@ -22,9 +22,25 @@
       <el-table-column type="selection"></el-table-column>
 <!--      <el-table-column label="id" prop="id" width="180">
       </el-table-column>-->
-      <el-table-column label="班级名称" prop="name" width="180">
+      <el-table-column label="班级名称" width="180">
+        <template slot-scope="scope">
+          <div class="action-cell">
+            <span>{{ scope.row.name }}</span>
+            <el-button type="text" size="small" @click="handleUpdateName(scope.row.id, scope.row.name)">
+              <i class="el-icon-edit"></i>
+            </el-button>
+          </div>
+        </template>
       </el-table-column>
-      <el-table-column label="邀请码" prop="invitationCode">
+      <el-table-column label="邀请码" prop="">
+        <template slot-scope="scope">
+          <div class="action-cell">
+            <span>{{ scope.row.invitationCode }}</span>
+            <el-button type="text" size="small" @click="copyToClipboard(scope.row.invitationCode)">
+              <i class="el-icon-copy-document"></i>
+            </el-button>
+          </div>
+        </template>
       </el-table-column>
       <el-table-column label="更新时间" prop="updateTime">
       </el-table-column>
@@ -51,7 +67,7 @@
 </template>
 
 <script>
-import {addClass, deleteBatchClass, pageClass} from "@/api/class";
+import {addClass, deleteBatchClass, pageClass, updateClassName} from "@/api/class";
 
 export default {
   data() {
@@ -139,6 +155,8 @@ export default {
           if (res.data.code === 200){
             this.$message({type: 'success', message: '删除成功!'});
             this.queryClass();
+          }else {
+            this.$message.error(res.data.msg);
           }
         })
       }).catch(() => {
@@ -147,6 +165,30 @@ export default {
           message: '已取消删除'
         });
       });
+    },
+    //重命名班级名称
+    handleUpdateName(id, name){
+      this.$prompt('请输入新名称', '重命名', {
+        confirmButtonText: '确定', cancelButtonText: '取消', inputPattern: /^\S{2,12}$/, inputErrorMessage: '名称格式不正确',inputValue: name
+      }).then(({ value }) => {
+        updateClassName(id, value).then(res => {
+          if (res.data.code === 200){
+            this.$message.success("成功修改班级名称为\"" + value + "\"");
+            this.queryClass();
+          }else {
+            this.$message.error(res.data.msg);
+          }
+        })
+      }).catch(() => {console.log("取消重命名")})
+    },
+    //复制内容到剪切板
+    copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        this.$message.success('邀请码已复制到剪贴板');
+      }).catch(err => {
+        console.error('无法复制文本: ', err);
+        this.$message.error('复制失败');
+      });
     }
 
   }
@@ -154,11 +196,17 @@ export default {
 </script>
 <style>
 
-.paginationClass {
-  position: fixed;
-  bottom: 0;
-  height: 40px;
-  width: 100%;
-  text-align: center;
+.el-icon-copy-document {
+  visibility: hidden; /* 默认隐藏 */
 }
+
+.el-icon-edit {
+  visibility: hidden;
+}
+
+.action-cell:hover .el-icon-edit,
+.action-cell:hover .el-icon-copy-document {
+  visibility: visible;
+}
+
 </style>

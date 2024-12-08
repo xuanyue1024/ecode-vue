@@ -26,7 +26,7 @@
         <el-submenu index="img" style="float: right">
           <template slot="title">
             <span class="el-dropdown-link">
-              点我查看  <el-image
+              {{$store.state.username}}  <el-image
                         style="width: 38px; height: 38px; border-radius: 50%;"
                         src="https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg"
                         fit="contain">
@@ -49,8 +49,8 @@
               <span slot="title">班级中心</span>
             </template>
             <el-menu-item-group>
-              <router-link style="text-decoration: none" to="/classManage"><el-menu-item index="1-1">班级管理</el-menu-item></router-link>
-
+              <router-link style="text-decoration: none" to="/classManage"><el-menu-item index="1-1">t班级管理</el-menu-item></router-link>
+              <router-link style="text-decoration: none" to="/myClass"><el-menu-item index="1-2">s学生管理</el-menu-item></router-link>
               <el-menu-item index="1-2">选项2</el-menu-item>
             </el-menu-item-group>
               <el-menu-item index="1-3">选项3</el-menu-item>

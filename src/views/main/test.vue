@@ -1,65 +1,71 @@
 <template>
-  <div ref="container" class="monaco-editor" style="height: 600px;text-align:left"></div>
+  <el-card class="box-card">
+    <div class="card-header">
+      <span>计算机组成原理2024秋软工1</span>
+    </div>
+    <div class="card-content">
+      <img src="path/to/avatar.png" alt="Avatar" class="avatar">
+      <div class="user-name">熊磊</div>
+    </div>
+    <div class="card-footer">
+      <span>1706</span>
+      <span>113</span>
+      <span class="status">进行中</span>
+    </div>
+  </el-card>
 </template>
+
 <script>
-import * as monaco from 'monaco-editor'
 export default {
-  name: 'AcMonaco',
-  props: {
-    opts: {
-      type: Object,
-      default () {
-        return {}
-      }
-    },
-    height: {
-      type: Number,
-      default: 600
-    }
-  },
-  data () {
+  name: 'YourComponentName',
+  data() {
     return {
-      // 主要配置
-      defaultOpts: {
-        value: '54555', // 编辑器的值
-        theme: 'vs-dark', // 编辑器主题：vs, hc-black, or vs-dark，更多选择详见官网
-        roundedSelection: true, // 右侧不显示编辑器预览框
-        autoIndent: true, // 自动缩进
-        language: 'java',
-      },
-      // 编辑器对象
-      monacoEditor: {}
-    }
+      // Your data here
+    };
   },
-  watch: {
-    opts: {
-      handler () {
-        this.init()
-      },
-      deep: true
-    }
-  },
-  mounted () {
-    this.init()
-  },
-  methods: {
-    init () {
-      // 初始化container的内容，销毁之前生成的编辑器
-      this.$refs.container.innerHTML = ''
-      // 生成编辑器配置
-      let editorOptions = Object.assign(this.defaultOpts, this.opts)
-      // 生成编辑器对象
-      this.monacoEditor = monaco.editor.create(this.$refs.container, editorOptions)
-      // 编辑器内容发生改变时触发
-      this.monacoEditor.onDidChangeModelContent(() => {
-        this.$emit('change', this.monacoEditor.getValue())
-      })
-    },
-    // 供父组件调用手动获取值
-    getVal () {
-      return this.monacoEditor.getValue()
-    }
-  }
-}
+};
 </script>
 
+<style scoped>
+.box-card {
+  width: 300px;
+  margin: 20px;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 0 6px rgba(0, 0, 0, 0.04);
+}
+
+.card-header {
+  padding: 20px;
+  text-align: center;
+}
+
+.card-content {
+  padding: 20px;
+  text-align: center;
+}
+
+.avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  margin: 20px 0;
+}
+
+.user-name {
+  font-size: 18px;
+  margin-bottom: 20px;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  border-top: 1px solid #ebeef5; /* 添加分割线 */
+}
+
+.status {
+  color: #409EFF;
+}
+</style>

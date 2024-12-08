@@ -35,7 +35,7 @@ export const postRequestForm = (url: string, params: { [key: string]: any }) => 
 
 // 传送 json 格式的 put 请求
 export const putRequest = (url: string, params: any) => {
-    return httptool.put(`${url}`, params);
+    return httptool.put(`${url}`,{}, {params});
 }
 
 // 传送 json 格式的 get 请求

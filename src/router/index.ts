@@ -16,11 +16,18 @@ const routes: Array<RouteConfig> = [
     name: 'main',
     component: () => import('../views/main/index.vue'),
     children: [
+        //教师：班级管理
       {
         path: '/classManage',
         name: 'classManage',
-        component: () => import('../views/main/classManage.vue')
+        component: () => import('../views/main/teacher/classManage.vue')
       },
+        //学生：我的班级
+      {
+        path: '/myClass',
+        name: 'myClass',
+        component: () => import('../views/main/student/myClass.vue')
+      }
     ]
   },
     //代码运行界面

@@ -24,12 +24,16 @@ import sys
 
 # 请在此输入您的代码
 print('hello,ecode')`]
-  ])
+  ]),
+    username: '游客',
     
   },
   getters: {
   },
   mutations: {
+    setUserName(state,newName) {
+      state.username = newName
+    }
   },
   actions: {
   },

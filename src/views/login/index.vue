@@ -176,6 +176,7 @@ export default Vue.extend({
             if (res.data.code === 200) {
               this.$message.success('登录成功，正在跳转');
               window.localStorage.setItem('token', res.data.data.token);
+              this.$store.commit('setUserName', res.data.data.userName);
               this.$router.push({
                 path: '/'
               })
