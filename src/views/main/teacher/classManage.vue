@@ -3,7 +3,7 @@
     <div style="text-align: left">
       <el-input placeholder="请输入内容" prefix-icon="el-icon-search" v-model="classQuery.name" style="max-width: 200px"/>
       <el-button type="primary" icon="el-icon-search" style="margin-left: 10px" @click="queryClass">搜索</el-button>
-      <el-button type="primary" icon="el-icon-plus" @click="dialogAddClassVisible = true" :loading="addIsLoading">添加班级</el-button>
+      <el-button type="plain" icon="el-icon-plus" @click="dialogAddClassVisible = true" :loading="addIsLoading">添加班级</el-button>
       <el-button type="danger" v-if="deleteVisible" style="margin-left: 10px" @click="handleDelete">删除</el-button>
       <!--  新增班级表单  -->
       <el-dialog title="新增班级" :visible.sync="dialogAddClassVisible" width="400px">
@@ -18,10 +18,9 @@
         </div>
       </el-dialog>
     </div>
-    <el-table :data="records" style="width: 100%;margin: 5px" height="660" @selection-change="handleSelectionChange">
+    <el-table :data="records" style="width: 100%;margin: 5px;margin-top: 15px" height="660" @selection-change="handleSelectionChange">
       <el-table-column type="selection"></el-table-column>
-<!--      <el-table-column label="id" prop="id" width="180">
-      </el-table-column>-->
+
       <el-table-column label="班级名称" width="180">
         <template slot-scope="scope">
           <div class="action-cell">
@@ -46,12 +45,15 @@
       </el-table-column>
       <el-table-column label="创建时间" prop="createTime">
       </el-table-column>
-      <el-table-column fixed="right" label="操作" width="100">
+      <el-table-column fixed="right" label="操作">
         <template slot-scope="scope">
-          <el-button @click="handleClick(scope.row)" type="text" size="small">查看</el-button>
-          <el-button type="text" size="small">编辑</el-button>
+          <div style="display: flex; justify-content: center; align-items: center;">
+            <el-button @click="handleEnter(scope)" size="mini" icon="el-icon-download">进入</el-button>
+            <el-button @click="handleDelete(scope)" size="mini" style="color: white !important;" type="danger" icon="el-icon-edit">删除</el-button>
+          </div>
         </template>
       </el-table-column>
+
     </el-table>
     <el-pagination
         class="paginationClass"
@@ -207,6 +209,17 @@ export default {
 .action-cell:hover .el-icon-edit,
 .action-cell:hover .el-icon-copy-document {
   visibility: visible;
+}
+
+/* 只影响本组件内的 .el-table 表头 */
+.el-table th.el-table__cell {
+  background-color: #eef1f6;
+  color: #606266;
+}
+
+/* 确保表头和单元格内容都居中 */
+.el-table th, .el-table .cell {
+  text-align: center;
 }
 
 </style>

@@ -27,6 +27,12 @@ const routes: Array<RouteConfig> = [
         path: '/myClass',
         name: 'myClass',
         component: () => import('../views/main/student/myClass.vue')
+      },
+        //个人信息修改
+      {
+        path: '/personalDetails',
+        name: 'personalDetails',
+        component: () => import('../views/main/personalDetails.vue')
       }
     ]
   },

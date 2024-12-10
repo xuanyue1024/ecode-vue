@@ -40,39 +40,29 @@
         <!-- <el-menu-item index="3" style="float: right">消息中心</el-menu-item> -->
       </el-menu>
     </el-header>
+    <!--左侧布局-->
     <el-container>
       <el-aside style="overflow: hidden;width: auto;height: 100%">
         <el-menu default-active="1-4-1" class="el-menu-vertical-demo" :collapse="isCollapse">
-          <el-submenu index="1">
-            <template slot="title">
-              <i class="el-icon-location"></i>
-              <span slot="title">班级中心</span>
-            </template>
-            <el-menu-item-group>
-              <router-link style="text-decoration: none" to="/classManage"><el-menu-item index="1-1">t班级管理</el-menu-item></router-link>
-              <router-link style="text-decoration: none" to="/myClass"><el-menu-item index="1-2">s学生管理</el-menu-item></router-link>
-              <el-menu-item index="1-2">选项2</el-menu-item>
-            </el-menu-item-group>
-              <el-menu-item index="1-3">选项3</el-menu-item>
-            <el-submenu index="1-4">
-              <span slot="title">选项4</span>
-              <el-menu-item index="1-4-1">选项1</el-menu-item>
-            </el-submenu>
-          </el-submenu>
-          <el-menu-item index="2">
-            <i class="el-icon-menu"></i>
-            <span slot="title">导航二</span>
-          </el-menu-item>
-          <el-menu-item index="3" disabled>
+          <!--班级管理-->
+          <el-menu-item index="myClass" @click="() => {this.$router.push('/myClass')}">
             <i class="el-icon-document"></i>
-            <span slot="title">导航三</span>
+            <span slot="title">s我的班级</span>
           </el-menu-item>
-          <el-menu-item index="4">
+
+          <el-menu-item index="classManage" @click="() => {this.$router.push('/classManage')}">
+            <i class="el-icon-document"></i>
+            <span slot="title">t班级管理</span>
+          </el-menu-item>
+
+          <el-menu-item index="4" @click="navigateTo()">
             <i class="el-icon-setting"></i>
             <span slot="title">导航四</span>
           </el-menu-item>
+
         </el-menu>
       </el-aside>
+      <!--主界面-->
       <el-main>
         <router-view />
       </el-main>
@@ -88,7 +78,7 @@ export default Vue.extend({
   name: 'main',
   data() {
     return {
-      isCollapse: true,
+      isCollapse: false,
       activeIndex: '1',
       activeIndex2: '1'
     }
