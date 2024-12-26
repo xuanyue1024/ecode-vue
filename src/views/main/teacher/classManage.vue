@@ -45,11 +45,23 @@
       </el-table-column>
       <el-table-column label="创建时间" prop="createTime">
       </el-table-column>
-      <el-table-column fixed="right" label="操作">
+      <el-table-column fixed="right" label="操作" width="180">
         <template slot-scope="scope">
-          <div style="display: flex; justify-content: center; align-items: center;">
-            <el-button @click="handleEnter(scope)" size="mini" icon="el-icon-download">进入</el-button>
-            <el-button @click="handleDelete(scope)" size="mini" style="color: white !important;" type="danger" icon="el-icon-edit">删除</el-button>
+          <div class="operation-buttons">
+            <el-button 
+              @click="handleEnter(scope)" 
+              size="mini" 
+              type="primary"
+              icon="el-icon-right">
+              进入
+            </el-button>
+            <el-button 
+              @click="handleDelete(scope)" 
+              size="mini" 
+              type="danger"
+              icon="el-icon-delete">
+              删除
+            </el-button>
           </div>
         </template>
       </el-table-column>
@@ -220,6 +232,40 @@ export default {
 /* 确保表头和单元格内容都居中 */
 .el-table th, .el-table .cell {
   text-align: center;
+}
+
+.operation-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.operation-buttons .el-button {
+  padding: 7px 15px;
+}
+
+.operation-buttons .el-button--danger {
+  background-color: #f56c6c;
+  border-color: #f56c6c;
+  color: white;
+}
+
+.operation-buttons .el-button--danger:hover {
+  background-color: #f78989;
+  border-color: #f78989;
+  color: white;
+}
+
+.operation-buttons .el-button--danger:focus,
+.operation-buttons .el-button--danger:active {
+  background-color: #dd6161;
+  border-color: #dd6161;
+  color: white;
+}
+
+/* 确保图标和文字对齐 */
+.el-button [class*="el-icon-"] + span {
+  margin-left: 5px;
 }
 
 </style>

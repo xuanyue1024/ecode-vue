@@ -4,10 +4,9 @@
     <el-header>
       <el-menu :default-active="activeIndex" class="el-menu-demo" mode="horizontal">
         <el-menu-item index="">
-          <el-radio-group v-model="isCollapse" style="margin-bottom: 20px;">
-            <el-radio-button :label="false">展开</el-radio-button>
-            <el-radio-button :label="true">收起</el-radio-button>
-          </el-radio-group>
+          <div class="collapse-btn" @click="toggleCollapse">
+            <img src="@/assets/logo.png" class="menu-icon" :class="{'is-active': isCollapse}" alt="toggle menu" />
+          </div>
         </el-menu-item>
         <el-menu-item index="1">处理中心</el-menu-item>
         <el-submenu index="2">
@@ -34,7 +33,7 @@
             </span>
           </template>
           <el-menu-item index="2-1">选项1</el-menu-item>
-          <el-menu-item index="2-2">选项2</el-menu-item>
+          <el-menu-item index="2-2" @click="() => {this.$router.push('/personalDetails')}">个人信息</el-menu-item>
           <el-menu-item index="logout" @click="logout">退出登录</el-menu-item>
         </el-submenu>
         <!-- <el-menu-item index="3" style="float: right">消息中心</el-menu-item> -->
@@ -84,6 +83,9 @@ export default Vue.extend({
     }
   },
   methods: {
+    toggleCollapse() {
+      this.isCollapse = !this.isCollapse;
+    },
     //退出登录
     logout(){
       window.localStorage.removeItem('token');
@@ -107,5 +109,20 @@ html {
 .el-menu-vertical-demo:not(.el-menu--collapse) {
   width: 200px;
   min-height: 400px;
+}
+
+.collapse-btn {
+  cursor: pointer;
+  padding: 0 15px;
+}
+
+.menu-icon {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.3s;
+}
+
+.menu-icon.is-active {
+  transform: rotate(180deg);
 }
 </style>
