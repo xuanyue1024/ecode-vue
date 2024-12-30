@@ -33,6 +33,12 @@ const routes: Array<RouteConfig> = [
         path: '/personalDetails',
         name: 'personalDetails',
         component: () => import('../views/main/personalDetails.vue')
+      },
+      // AI 聊天
+      {
+        path: '/chat',
+        name: 'chat',
+        component: () => import('../views/chat/index.vue')
       }
     ]
   },
