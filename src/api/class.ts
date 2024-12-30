@@ -1,47 +1,53 @@
-import {
-    deleteRequest,
-    deleteRequestForm,
-    getRequest,
-    getRequestForm,
-    postRequestForm,
-    putRequest
-} from "@/utils/request";
+import { postRequest, getRequest, deleteRequestForm, putRequest } from '@/utils/request'
 
-/*
-* 老师
-*
-* */
+// 教师端接口
+// 增加班级
+export const addClass = (name: string) =>
+  postRequest('/api/teacher/class', { name })
 
-// 添加班级
-export const addClass = (name: any) =>
-    postRequestForm('/api/teacher/class',name)
+// 修改班级信息
+export const updateClass = (data: any) =>
+  putRequest('/api/teacher/class', data)
 
-//班级分页查询
+// 批量删除班级
+export const deleteClasses = (ids: number[]) => {
+  return deleteRequestForm('/api/teacher/class', {
+    ids: ids.join(',')
+  })
+}
 
-export const pageClass = ( data: any) =>
-    getRequestForm("/api/teacher/class/page", data)
+// 班级分页查询
+export const getClassPage = (params: any) =>
+  getRequest(`/api/teacher/class/page?pageNo=${params.pageNo}&pageSize=${params.pageSize}&name=${params.name || ''}&isAsc=${params.isAsc || false}&sortBy=${params.sortBy || ''}`)
 
-//批量删除班级
-export const deleteBatchClass = (ids:string) =>
-    deleteRequestForm("/api/teacher/class", {"ids": ids})
+// 班级增加题目
+export const addProblemToClass = (data: any) =>
+  postRequest('/api/teacher/class/problem', data)
 
-//修改班级名称
-export const updateClassName = (id: string, name: string) =>
-    putRequest("/api/teacher/class", { "id": id, "name": name });
+// 批量移除班级题目
+export const removeProblemFromClass = (data: any) =>
+  deleteRequestForm('/api/teacher/class/problem', data)
 
-/*
-* 学生
-*
-* */
-//班级分页查询
+// 班级题目分页查询
+export const getClassProblemPage = (params: any) =>
+  getRequest(`/api/teacher/class/problem/page?classId=${params.classId}&pageNo=${params.pageNo}&pageSize=${params.pageSize}&name=${params.name || ''}&isAsc=${params.isAsc || false}&sortBy=${params.sortBy || ''}`)
 
-export const pageClassForStudent = ( data: any) =>
-    getRequestForm("/api/student/class/page", data)
+// 学生端接口
+// 加入班级
+export const joinClass = (invitationCode: string) =>
+  getRequest(`/api/student/class?invitationCode=${invitationCode}`)
 
-//加入班级
-export const joinClass = ( invitationCode: string) =>
-    getRequestForm("/api/student/class", {"invitationCode": invitationCode})
+// 退出班级
+export const quitClass = (ids: number[]) => {
+  return deleteRequestForm('/api/student/class', {
+    ids: ids.join(',')
+  })
+}
 
-//批量退出班级
-export const exitBatchClass = (ids:string) =>
-    deleteRequestForm("/api/student/class", {"ids": ids})
+// 分页查询班级成员
+export const getClassMembers = (params: any) =>
+  getRequest(`/api/student/class/members/page?classId=${params.classId}&pageNo=${params.pageNo}&pageSize=${params.pageSize}&name=${params.name || ''}&isAsc=${params.isAsc || false}&sortBy=${params.sortBy || ''}`)
+
+// 学生查询班级列表
+export const getStudentClassPage = (params: any) =>
+  getRequest(`/api/student/class/page?pageNo=${params.pageNo}&pageSize=${params.pageSize}&name=${params.name || ''}&isAsc=${params.isAsc || false}&sortBy=${params.sortBy || ''}`)

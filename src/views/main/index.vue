@@ -70,11 +70,9 @@
 </div>
 </template>
 
-<script lang="ts">
-import Vue from 'vue';
-
-export default Vue.extend({
-  name: 'main',
+<script>
+export default {
+  name: 'MainLayout',
   data() {
     return {
       isCollapse: false,
@@ -84,16 +82,19 @@ export default Vue.extend({
   },
   methods: {
     toggleCollapse() {
-      this.isCollapse = !this.isCollapse;
+      this.isCollapse = !this.isCollapse
     },
     //退出登录
-    logout(){
-      window.localStorage.removeItem('token');
-      this.$message.success('退出登录成功');
-      this.$router.push('/login');
+    logout() {
+      window.localStorage.removeItem('token')
+      this.$message.success('退出登录成功')
+      this.$router.push('/login')
+    },
+    navigateTo() {
+      // 导航方法的实现
     }
   }
-});
+}
 </script>
 
 <style>

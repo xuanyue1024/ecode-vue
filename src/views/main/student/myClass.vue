@@ -1,10 +1,10 @@
 <template>
   <div>
     <div style="text-align: left;margin-left: 20px">
-      <el-input placeholder="请输入内容" prefix-icon="el-icon-search" v-model="classQuery.name" style="max-width: 200px"/>
-      <el-button type="primary" icon="el-icon-search" style="margin-left: 10px" @click="queryClass">搜索</el-button>
+      <el-input placeholder="请输入内容" prefix-icon="el-icon-search" v-model="searchForm.name" style="max-width: 200px"/>
+      <el-button type="primary" icon="el-icon-search" style="margin-left: 10px" @click="handleSearch">搜索</el-button>
       <el-button type="primary" icon="el-icon-plus" @click="dialogAddClassVisible = true">加入班级</el-button>
-      <!--  新增班级表单  -->
+      <!--  加入班级表单  -->
       <el-dialog title="加入班级" :visible.sync="dialogAddClassVisible" width="400px">
         <el-form>
           <el-form-item label="邀请码" label-width="90px">
@@ -13,20 +13,22 @@
         </el-form>
         <div slot="footer" class="dialog-footer">
           <el-button @click="dialogAddClassVisible = false">取 消</el-button>
-          <el-button type="primary" @click="joinClass()">确 定</el-button>
+          <el-button type="primary" @click="handleJoinClass">确 定</el-button>
         </div>
       </el-dialog>
     </div>
     <div class="card-container">
-      <el-card class="box-card" v-for="i in records" :key="i.id">
+      <el-card class="box-card" v-for="i in classList" :key="i.id">
         <div class="card-header">
           <div style="text-align: right">
             <el-dropdown trigger="click" @command="handleCommand(i,$event)">
-            <img src="../../../assets/more.svg" alt="icon" style="width: 20px;height: 20px" />
+              <img src="../../../assets/more.svg" alt="icon" style="width: 20px;height: 20px" />
               <!-- 下拉菜单 -->
               <el-dropdown-menu slot="dropdown">
                 <el-dropdown-item command="1">复制邀请码</el-dropdown-item>
                 <el-dropdown-item command="2">退出班级</el-dropdown-item>
+                <el-dropdown-item command="3">查看成员</el-dropdown-item>
+                <el-dropdown-item command="4">查看题目</el-dropdown-item>
               </el-dropdown-menu>
             </el-dropdown>
           </div>
@@ -44,108 +46,282 @@
         </div>
       </el-card>
     </div>
+
+    <!-- 班级成员对话框 -->
+    <el-dialog title="班级成员" :visible.sync="memberDialogVisible" width="800px">
+      <div class="member-list">
+        <!-- 成员搜索 -->
+        <el-form :inline="true">
+          <el-form-item>
+            <el-input v-model="memberQuery.name" placeholder="请输入学生姓名" clearable></el-input>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="queryMembers">搜索</el-button>
+            <el-button @click="resetMemberSearch">重置</el-button>
+          </el-form-item>
+        </el-form>
+
+        <!-- 成员表格 -->
+        <el-table :data="memberList" v-loading="memberLoading">
+          <el-table-column prop="username" label="用户名"></el-table-column>
+          <el-table-column prop="name" label="姓名"></el-table-column>
+          <el-table-column prop="email" label="邮箱"></el-table-column>
+          <el-table-column prop="score" label="积分"></el-table-column>
+        </el-table>
+
+        <!-- 分页 -->
+        <div class="pagination">
+          <el-pagination
+            @size-change="handleMemberSizeChange"
+            @current-change="handleMemberCurrentChange"
+            :current-page="memberQuery.pageNo"
+            :page-sizes="[10, 20, 30, 50]"
+            :page-size="memberQuery.pageSize"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="memberTotal">
+          </el-pagination>
+        </div>
+      </div>
+    </el-dialog>
+
+    <!-- 班级题目对话框 -->
+    <el-dialog title="班级题目" :visible.sync="problemDialogVisible" width="800px">
+      <div class="problem-list">
+        <!-- 题目搜索 -->
+        <el-form :inline="true">
+          <el-form-item>
+            <el-input v-model="problemQuery.name" placeholder="请输入题目名称" clearable></el-input>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="queryProblems">搜索</el-button>
+            <el-button @click="resetProblemSearch">重置</el-button>
+          </el-form-item>
+        </el-form>
+
+        <!-- 题目表格 -->
+        <el-table :data="problemList" v-loading="problemLoading">
+          <el-table-column prop="title" label="题目标题"></el-table-column>
+          <el-table-column prop="grade" label="难度">
+            <template slot-scope="scope">
+              <el-tag :type="scope.row.grade === 'EASY' ? 'success' : scope.row.grade === 'GENERAL' ? 'warning' : 'danger'">
+                {{ scope.row.grade === 'EASY' ? '简单' : scope.row.grade === 'GENERAL' ? '中等' : '困难' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="100">
+            <template slot-scope="scope">
+              <el-button type="text" @click="handleViewProblem(scope.row)">查看</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <!-- 分页 -->
+        <div class="pagination">
+          <el-pagination
+            @size-change="handleProblemSizeChange"
+            @current-change="handleProblemCurrentChange"
+            :current-page="problemQuery.pageNo"
+            :page-sizes="[10, 20, 30, 50]"
+            :page-size="problemQuery.pageSize"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="problemTotal">
+          </el-pagination>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import {deleteBatchClass, exitBatchClass, joinClass, pageClassForStudent} from "@/api/class";
+import { getClassList, quitClass, getClassMemberPage, getClassProblemPage } from '@/api/class'
+import { getProblemPage } from '@/api/problem'
 
 export default {
+  name: 'MyClass',
   data() {
     return {
-      dialogAddClassVisible: false,//新增班级弹窗是否显示
-      invitationCode: '',//添加班级邀请码
-      records: [],
-      classQuery: {
-        isAsc: '',
-        name: '',
+      loading: false,
+      classList: [],
+      searchForm: {
+        name: ''
+      },
+      // 成员对话框
+      memberDialogVisible: false,
+      memberLoading: false,
+      memberList: [],
+      memberTotal: 0,
+      memberQuery: {
         pageNo: 1,
         pageSize: 10,
-        sortBy: ''
-      }
+        classId: null
+      },
+      // 题目对话框
+      problemDialogVisible: false,
+      problemLoading: false,
+      problemList: [],
+      problemTotal: 0,
+      problemQuery: {
+        pageNo: 1,
+        pageSize: 10,
+        classId: null
+      },
+      currentClassId: null
     }
   },
   created() {
-    this.queryClass();
+    this.getClassList()
   },
   methods: {
-    //分页查询班级信息
-    queryClass(){
-      pageClassForStudent(this.classQuery).then(res => {
-        if (res.data.code === 200){
-          this.records = res.data.data.records;
-          this.total = res.data.data.total;
+    // 获取班级列表
+    async getClassList() {
+      this.loading = true
+      try {
+        const res = await getClassList()
+        if (res.data.code === 200) {
+          this.classList = res.data.data
         } else {
-          this.$message.error(res.data.msg);
+          this.$message.error(res.data.msg || '获取班级列表失败')
+        }
+      } catch (error) {
+        console.error('获取班级列表错误:', error)
+        this.$message.error('获取班级列表失败')
+      } finally {
+        this.loading = false
+      }
+    },
+    // 复制邀请码
+    handleCopy(invitationCode) {
+      navigator.clipboard.writeText(invitationCode).then(() => {
+        this.$message.success('复制成功')
+      }).catch(err => {
+        console.error('无法复制文本: ', err)      
+        this.$message.error('复制失败')
+      })
+    },
+    // 查看班级成员
+    handleViewMembers(classId) {
+      this.currentClassId = classId
+      this.memberQuery.classId = classId
+      this.memberDialogVisible = true
+      this.queryMembers()
+    },
+    // 查询班级成员
+    async queryMembers() {
+      this.memberLoading = true
+      try {
+        const res = await getClassMemberPage(this.memberQuery)
+        if (res.data.code === 200) {
+          this.memberList = res.data.data.records
+          this.memberTotal = res.data.data.total  
+        } else {
+          this.$message.error(res.data.msg || '获取成员列表失败')
+        }
+      } catch (error) {
+        console.error('获取成员列表错误:', error)
+        this.$message.error('获取成员列表失败')
+      } finally {
+        this.memberLoading = false
+      }
+    },
+    // 成员分页
+    handleMemberSizeChange(val) {
+      this.memberQuery.pageSize = val
+      this.queryMembers()
+    },
+    handleMemberCurrentChange(val) {
+      this.memberQuery.pageNo = val
+      this.queryMembers()
+    },
+    // 查看班级题目
+    handleViewProblems(classId) {
+      this.currentClassId = classId
+      this.problemQuery.classId = classId
+      this.problemDialogVisible = true
+      this.queryProblems()
+    },
+    // 查询班级题目
+    async queryProblems() {
+      this.problemLoading = true
+      try {
+        const res = await getClassProblemPage(this.problemQuery)
+        if (res.data.code === 200) {
+          this.problemList = res.data.data.records
+          this.problemTotal = res.data.data.total 
+        } else {
+          this.$message.error(res.data.msg || '获取题目列表失败')
+        }
+      } catch (error) {
+        console.error('获取题目列表错误:', error)
+        this.$message.error('获取题目列表失败')
+      } finally {
+        this.problemLoading = false
+      }
+    },
+    // 题目分页
+    handleProblemSizeChange(val) {
+      this.problemQuery.pageSize = val
+      this.queryProblems()
+    },
+    handleProblemCurrentChange(val) {
+      this.problemQuery.pageNo = val
+      this.queryProblems()
+    },
+    // 查看题目详情
+    handleViewProblem(problem) {
+      this.$router.push({
+        path: `/problem/${problem.id}`,
+        query: {
+          classId: this.currentClassId,
         }
       })
     },
-    //增加班级
-    joinClass() {
-      joinClass(this.invitationCode).then(res => {
-        if (res.data.code === 200){
-          this.$message.success("班级添加成功");
-          this.queryClass();
-        }else {
-          this.$message.error(res.data.msg);
-        }
-      });
-      this.addIsLoading = false;
-      this.dialogAddClassVisible = false;
-    },
-    //班级列表菜单项
-    handleCommand(val, command){
-      if (command === '1'){
-        this.copyToClipboard(val.invitationCode);
-      }else if (command === '2'){
-        this.handleExit(val.id);
-      }
-    },
-    //批量退出班级
-    handleExit(id){
-      //弹出确认退出框
-      this.$confirm('此操作将不可恢复, 是否继续?', '警告', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+    // 退出班级
+    handleQuit(classId) {
+      this.$confirm('确定要退出该班级吗？', '提示', {
         type: 'warning'
-      }).then(() => {
-        exitBatchClass(id).then(res => {
-          if (res.data.code === 200){
-            this.$message({type: 'success', message: '退出成功!'});
-            this.queryClass();
-          }else {
-            this.$message.error(res.data.msg);
+      }).then(async () => {
+        try {
+          const res = await quitClass([classId])
+          if (res.data.code === 200) {
+            this.$message.success('退出成功')
+            this.getClassList()
+          } else {
+            this.$message.error(res.data.msg || '退出失败')
           }
-        })
-      }).catch(() => {
-        this.$message({
-          type: 'info',
-          message: '已取消'
-        });
-      });
+        } catch (error) {
+          console.error('退出班级错误:', error)
+          this.$message.error('退出失败')
+        }
+      })
     },
-    //时间格式化
-    formatDate(timeStr){
-      const date = new Date(timeStr);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
+    // 搜索
+    handleSearch() {
+      const filteredList = this.classList.filter(item => 
+        item.name.toLowerCase().includes(this.searchForm.name.toLowerCase())
+      )
+      this.classList = filteredList
     },
-    copyToClipboard(text) {
-      navigator.clipboard.writeText(text).then(() => {
-        this.$message.success('邀请码已复制到剪贴板');
-      }).catch(err => {
-        console.error('无法复制文本: ', err);
-        this.$message.error('复制失败');
-      });
+    // 重置搜索
+    resetSearch() {
+      this.searchForm.name = ''
+      this.getClassList()
+    },
+    // 格式化日期
+    formatDate(timeStr) {
+      if (!timeStr) return ''
+      const date = new Date(timeStr)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hour = String(date.getHours()).padStart(2, '0')
+      const minute = String(date.getMinutes()).padStart(2, '0')
+      return `${year}-${month}-${day} ${hour}:${minute}`
     }
-
   }
-};
+}
 </script>
 
-<style>
+<style scoped>
 .card-container {
   display: flex;
   flex-wrap: wrap; /* 允许换行 */
@@ -194,5 +370,15 @@ export default {
 
 .el-card__body{
   padding: 5px;
+}
+
+.member-list,
+.problem-list {
+  padding: 20px;
+}
+
+.pagination {
+  margin-top: 20px;
+  text-align: right;
 }
 </style>
