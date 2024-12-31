@@ -54,6 +54,11 @@
             <span slot="title">t班级管理</span>
           </el-menu-item>
 
+          <el-menu-item index="problemManage" @click="() => {this.$router.push('/problemManage')}">
+            <i class="el-icon-edit-outline"></i>
+            <span slot="title">t题目管理</span>
+          </el-menu-item>
+
           <el-menu-item index="4" @click="navigateTo()">
             <i class="el-icon-setting"></i>
             <span slot="title">导航四</span>

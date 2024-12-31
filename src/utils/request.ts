@@ -38,6 +38,11 @@ export const putRequest = (url: string, params: any) => {
     return httptool.put(`${url}`,{}, {params});
 }
 
+// 传送 json 格式的 put 请求
+export const putRequestJson = (url: string, data: any) => {
+    return httptool.put(`${url}`, data);
+}
+
 // 传送 json 格式的 get 请求
 export const getRequest = (url: string) => {
     return httptool.get(`${url}`);
@@ -96,6 +101,7 @@ httptool.interceptors.response.use(
 export default {
     postRequest,
     putRequest,
+    putRequestJson,
     getRequest,
     deleteRequest,
 };
