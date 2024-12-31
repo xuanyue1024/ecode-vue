@@ -27,6 +27,8 @@
                 :parent="false"
                 :prevent-deactivation="true"
                 :active="true"
+                :handles="['tl', 'tr', 'bl', 'br']"
+                drag-handle=".chat-header"
                 class="chat-wrapper"
                 @resizing="onResize">
                 <div class="ai-chat-container" :style="{ width: '100%', height: '100%' }">
@@ -37,7 +39,7 @@
                     <template v-for="(message, index) in messages">
                       <div :key="index" :class="['chat-message', message.role]">
                         <template v-if="message.role === 'user'">
-                          <div class="message-content">{{ message.content }}</div>
+                          <div class="message-content markdown-body" v-html="renderMarkdown(message.content)"></div>
                           <div class="avatar">
                             <i class="el-icon-user"></i>
                           </div>
@@ -342,6 +344,86 @@ export default {
       this.monacoEditor.onDidChangeModelContent(() => {
         this.$emit('change', this.monacoEditor.getValue())
       })
+      
+      // 添加右键菜单项
+      this.monacoEditor.addAction({
+        id: 'ask-ai-perf',
+        label: '优化代码',
+        contextMenuGroupId: 'ai',
+        contextMenuOrder: 1.5,
+        run: (editor) => {
+          const selection = editor.getSelection()
+          const selectedText = editor.getModel().getValueInRange(selection)
+          
+          if (selectedText) {
+            // 打开 AI 聊天框
+            this.showAiChat = true
+            
+            // 等待 DOM 更新
+            this.$nextTick(() => {
+              // 设置输入消息并发送，添加代码框标记
+              this.inputMessage = '```\n' + selectedText + '\n```'
+              // 添加优化提示并发送消息
+              this.$nextTick(() => {
+                this.inputMessage += '\n\nperf'
+                this.sendMessage()
+              })
+            })
+          } else {
+            this.$message.warning('请先选择要优化的代码')
+          }
+        }
+      })
+
+      // 添加修复bug的菜单项
+      this.monacoEditor.addAction({
+        id: 'ask-ai-fix',
+        label: '修复bug',
+        contextMenuGroupId: 'ai',
+        contextMenuOrder: 1.6,
+        run: (editor) => {
+          const selection = editor.getSelection()
+          const selectedText = editor.getModel().getValueInRange(selection)
+          
+          if (selectedText) {
+            this.showAiChat = true
+            this.$nextTick(() => {
+              this.inputMessage = '```\n' + selectedText + '\n```'
+              this.$nextTick(() => {
+                this.inputMessage += '\n\nfix'
+                this.sendMessage()
+              })
+            })
+          } else {
+            this.$message.warning('请先选择要修复的代码')
+          }
+        }
+      })
+
+      // 添加解释代码的菜单项
+      this.monacoEditor.addAction({
+        id: 'ask-ai-annotation',
+        label: '解释代码',
+        contextMenuGroupId: 'ai',
+        contextMenuOrder: 1.7,
+        run: (editor) => {
+          const selection = editor.getSelection()
+          const selectedText = editor.getModel().getValueInRange(selection)
+          
+          if (selectedText) {
+            this.showAiChat = true
+            this.$nextTick(() => {
+              this.inputMessage = '```\n' + selectedText + '\n```'
+              this.$nextTick(() => {
+                this.inputMessage += '\n\nannotation'
+                this.sendMessage()
+              })
+            })
+          } else {
+            this.$message.warning('请先选择要解释的代码')
+          }
+        }
+      })
     },
     // 供父组件调用手动获取值
     getVal() {
@@ -525,6 +607,40 @@ export default {
 </script>
 
 <style>
+/* GitHub Markdown 样式覆盖 */
+.markdown-body {
+  font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji;
+  font-size: 14px;
+  word-wrap: break-word;
+  padding: 0 !important;
+  background-color: transparent !important;
+}
+
+/* 题目区域的基础样式 */
+.problem-content {
+  height: 100%;
+  overflow-y: auto;
+  padding-right: 16px;
+  padding-left: 16px;
+  text-align: left;
+}
+
+.problem-content p {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+
+.problem-content h2 {
+  margin: 12px 0;
+  line-height: 1.5;
+}
+
+.problem-content h3 {
+  margin: 10px 0;
+  line-height: 1.5;
+}
+
+/* 基础布局样式 */
 html, body {
   margin: 0;
   padding: 0;
@@ -562,29 +678,6 @@ html, body {
   padding: 8px;
 }
 
-.problem-content {
-  height: 100%;
-  overflow-y: auto;
-  padding-right: 16px;
-  padding-left: 16px;
-  text-align: left;
-}
-
-.problem-content p {
-  margin: 2px 0;
-  line-height: 1;
-}
-
-.problem-content h2 {
-  margin: 6px 0;
-  line-height: 1.2;
-}
-
-.problem-content h3 {
-  margin: 4px 0;
-  line-height: 1.2;
-}
-
 /* 右侧容器样式 */
 .el-main {
   padding: 0;
@@ -593,70 +686,6 @@ html, body {
 
 .el-footer {
   padding: 0;
-}
-
-/* 数学公式样式 */
-.katex-display {
-  margin: 0.5em 0 !important;
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-
-.katex {
-  font-size: 1em !important;
-}
-
-.katex-display > .katex {
-  white-space: normal;
-}
-
-/* markdown 内容样式 */
-.problem-content div[v-html] {
-  line-height: 1;
-}
-
-.problem-content div[v-html] p {
-  margin: 2px 0;
-}
-
-.problem-content div[v-html] ul,
-.problem-content div[v-html] ol {
-  margin: 2px 0;
-  padding-left: 16px;
-}
-
-.problem-content div[v-html] li {
-  margin: 1px 0;
-  line-height: 1;
-}
-
-/* 滚动条样式 */
-.problem-content::-webkit-scrollbar {
-  width: 6px;
-  background: transparent;
-}
-
-.problem-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.problem-content::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-  transition: all 0.2s ease;
-}
-
-.problem-content:hover::-webkit-scrollbar-thumb {
-  background: #88888880;
-}
-
-.problem-content:hover::-webkit-scrollbar-thumb:hover {
-  background: #888;
-}
-
-/* 确保卡片内容不溢出 */
-.el-card {
-  overflow: hidden;
 }
 
 /* 编辑器设置样式 */
@@ -697,89 +726,6 @@ html, body {
 /* 确保下拉菜单不会被截断 */
 .el-select-dropdown {
   z-index: 3000 !important;
-}
-
-/* GitHub Markdown 样式覆盖 */
-.markdown-body {
-  font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji;
-  font-size: 14px;
-  line-height: 1.5;
-  word-wrap: break-word;
-  padding: 0 !important;
-  background-color: transparent !important;
-}
-
-.markdown-body pre {
-  background-color: #f6f8fa;
-  border-radius: 6px;
-  padding: 16px;
-  overflow: auto;
-}
-
-.markdown-body code {
-  background-color: rgba(175,184,193,0.2);
-  border-radius: 6px;
-  padding: 0.2em 0.4em;
-  font-size: 85%;
-}
-
-.markdown-body pre code {
-  background-color: transparent;
-  padding: 0;
-}
-
-.markdown-body table {
-  border-spacing: 0;
-  border-collapse: collapse;
-  margin: 16px 0;
-  width: 100%;
-}
-
-.markdown-body table th,
-.markdown-body table td {
-  padding: 6px 13px;
-  border: 1px solid #d0d7de;
-}
-
-.markdown-body table tr {
-  background-color: #ffffff;
-  border-top: 1px solid #d0d7de;
-}
-
-.markdown-body table tr:nth-child(2n) {
-  background-color: #f6f8fa;
-}
-
-.markdown-body blockquote {
-  padding: 0 1em;
-  color: #656d76;
-  border-left: 0.25em solid #d0d7de;
-  margin: 16px 0;
-}
-
-.markdown-body ul,
-.markdown-body ol {
-  padding-left: 2em;
-  margin: 16px 0;
-}
-
-.markdown-body li {
-  margin: 0.25em 0;
-}
-
-.markdown-body p {
-  margin: 16px 0;
-}
-
-.markdown-body h1,
-.markdown-body h2,
-.markdown-body h3,
-.markdown-body h4,
-.markdown-body h5,
-.markdown-body h6 {
-  margin: 24px 0 16px;
-  font-weight: 600;
-  line-height: 1.25;
 }
 
 /* 题目头部样式 */
@@ -834,142 +780,17 @@ html, body {
   color: #333;
   background: #f8f9fb;
   border-radius: 8px 8px 0 0;
+  cursor: move;
 }
 
 .chat-messages {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 16px;
+  padding: 12px !important;
   background: #f7f8fa;
   width: 100%;
   box-sizing: border-box;
-}
-
-.chat-messages .message {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 16px;
-  max-width: 100%;
-}
-
-.chat-messages .message .avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 8px;
-  flex-shrink: 0;
-}
-
-.chat-messages .message.user {
-  flex-direction: row-reverse;
-  justify-content: flex-end;
-}
-
-.chat-messages .message.assistant {
-  flex-direction: row;
-  justify-content: flex-start;
-}
-
-.chat-messages .message.user .avatar {
-  margin-right: 0;
-  margin-left: 8px;
-  background: #409eff;
-  color: white;
-}
-
-.chat-messages .message.assistant .avatar {
-  margin-right: 8px;
-  margin-left: 0;
-  background: #95a5a6;
-  color: white;
-}
-
-.chat-messages .message-content {
-  max-width: calc(100% - 50px);
-  padding: 10px 14px;
-  border-radius: 12px;
-  word-wrap: break-word;
-  word-break: break-word;
-  line-height: 1.6;
-  font-size: 15px;
-  white-space: pre-wrap;
-  box-sizing: border-box;
-  font-weight: 400;
-}
-
-.chat-messages .message.user .message-content {
-  background: #409eff;
-  color: #fff;
-  margin-left: 20%;
-  margin-right: 8px;
-  font-weight: 400;
-}
-
-.chat-messages .message.assistant .message-content {
-  background: #e9ecef;
-  color: #2c3e50;
-  margin-right: 20%;
-  margin-left: 8px;
-  font-weight: 400;
-}
-
-.chat-message.assistant .message-content.markdown-body {
-  background: #e9ecef !important;
-  color: #2c3e50 !important;
-  border-radius: 12px;
-  border-top-left-radius: 4px;
-  padding: 16px !important;
-  line-height: 1.4 !important;
-}
-
-.chat-message.assistant .message-content.markdown-body p {
-  color: #2c3e50 !important;
-  margin: 4px 0 !important;
-  line-height: 1.4 !important;
-}
-
-.chat-message.assistant .message-content.markdown-body h1,
-.chat-message.assistant .message-content.markdown-body h2,
-.chat-message.assistant .message-content.markdown-body h3,
-.chat-message.assistant .message-content.markdown-body h4,
-.chat-message.assistant .message-content.markdown-body h5,
-.chat-message.assistant .message-content.markdown-body h6 {
-  margin: 8px 0 4px !important;
-  line-height: 1.4 !important;
-}
-
-.chat-message.assistant .message-content.markdown-body ul,
-.chat-message.assistant .message-content.markdown-body ol {
-  color: #2c3e50 !important;
-  padding-left: 24px !important;
-  margin: 4px 0 !important;
-}
-
-.chat-message.assistant .message-content.markdown-body li {
-  color: #2c3e50 !important;
-  margin: 2px 0 !important;
-  line-height: 1.4 !important;
-}
-
-.chat-message.assistant .message-content.markdown-body pre {
-  margin: 6px 0 !important;
-  background: #f8f9fa !important;
-  border-radius: 4px;
-  border: 1px solid #dee2e6;
-  padding: 12px !important;
-}
-
-.chat-message.assistant .message-content.markdown-body blockquote {
-  color: #57606a !important;
-  border-left-color: #d0d7de !important;
-  background: rgba(175,184,193,0.2) !important;
-  padding: 0.25em 1em !important;
-  margin: 6px 0 !important;
-  line-height: 1.4 !important;
 }
 
 .chat-input {
@@ -987,7 +808,7 @@ html, body {
 .chat-input .el-textarea {
   flex: 1;
   overflow: hidden;
-  width: 0; /* 让 flex: 1 生效 */
+  width: 0;
 }
 
 .chat-input .el-textarea__inner {
@@ -1044,7 +865,7 @@ html, body {
 .chat-message {
   display: flex;
   align-items: flex-start;
-  margin-bottom: 16px;
+  margin-bottom: 8px !important;
   padding: 0;
   width: 100%;
   box-sizing: border-box;
@@ -1052,15 +873,17 @@ html, body {
 
 .chat-message.user {
   justify-content: flex-end;
+  flex-direction: row;
 }
 
 .chat-message.assistant {
   justify-content: flex-start;
+  flex-direction: row;
 }
 
 .chat-message .avatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1072,22 +895,25 @@ html, body {
   margin-left: 8px;
   background: #409eff;
   color: white;
+  order: 2;
 }
 
 .chat-message.assistant .avatar {
   margin-right: 8px;
   background: #95a5a6;
   color: white;
+  order: 1;
 }
 
 .chat-message .message-content {
-  max-width: calc(100% - 50px);
-  padding: 10px 14px;
+  max-width: 85%;
+  min-width: 50px;
+  padding: 8px 12px !important;
   border-radius: 12px;
   word-wrap: break-word;
   word-break: break-word;
-  line-height: 1.6;
-  font-size: 15px;
+  line-height: 1.4;
+  font-size: 14px;
   white-space: pre-wrap;
   box-sizing: border-box;
   font-weight: 400;
@@ -1096,72 +922,15 @@ html, body {
 .chat-message.user .message-content {
   background: #409eff;
   color: #fff;
-  margin-left: 20%;
-  margin-right: 8px;
-  font-weight: 400;
+  margin-right: 0;
+  order: 1;
 }
 
 .chat-message.assistant .message-content {
   background: #e9ecef;
   color: #2c3e50;
-  margin-right: 20%;
-  margin-left: 8px;
-  font-weight: 400;
-}
-
-.chat-message.assistant .message-content.markdown-body {
-  background: #e9ecef !important;
-  color: #2c3e50 !important;
-  border-radius: 12px;
-  border-top-left-radius: 4px;
-  padding: 16px !important;
-  line-height: 1.4 !important;
-}
-
-.chat-message.assistant .message-content.markdown-body p {
-  color: #2c3e50 !important;
-  margin: 4px 0 !important;
-  line-height: 1.4 !important;
-}
-
-.chat-message.assistant .message-content.markdown-body h1,
-.chat-message.assistant .message-content.markdown-body h2,
-.chat-message.assistant .message-content.markdown-body h3,
-.chat-message.assistant .message-content.markdown-body h4,
-.chat-message.assistant .message-content.markdown-body h5,
-.chat-message.assistant .message-content.markdown-body h6 {
-  margin: 8px 0 4px !important;
-  line-height: 1.4 !important;
-}
-
-.chat-message.assistant .message-content.markdown-body ul,
-.chat-message.assistant .message-content.markdown-body ol {
-  color: #2c3e50 !important;
-  padding-left: 24px !important;
-  margin: 4px 0 !important;
-}
-
-.chat-message.assistant .message-content.markdown-body li {
-  color: #2c3e50 !important;
-  margin: 2px 0 !important;
-  line-height: 1.4 !important;
-}
-
-.chat-message.assistant .message-content.markdown-body pre {
-  margin: 6px 0 !important;
-  background: #f8f9fa !important;
-  border-radius: 4px;
-  border: 1px solid #dee2e6;
-  padding: 12px !important;
-}
-
-.chat-message.assistant .message-content.markdown-body blockquote {
-  color: #57606a !important;
-  border-left-color: #d0d7de !important;
-  background: rgba(175,184,193,0.2) !important;
-  padding: 0.25em 1em !important;
-  margin: 6px 0 !important;
-  line-height: 1.4 !important;
+  margin-left: 0;
+  order: 2;
 }
 
 .ai-chat-popover {
@@ -1233,6 +1002,140 @@ html, body {
 
 .vdr .vdr-handle:hover {
   opacity: 0.6 !important;
-  cursor: se-resize;
+}
+
+/* 设置不同角落手柄的鼠标样式 */
+.vdr-handle-tl {
+  cursor: nw-resize !important;
+}
+
+.vdr-handle-tr {
+  cursor: ne-resize !important;
+}
+
+.vdr-handle-bl {
+  cursor: sw-resize !important;
+}
+
+.vdr-handle-br {
+  cursor: se-resize !important;
+}
+
+/* 聊天框的 markdown 样式 */
+.chat-message .message-content.markdown-body {
+  line-height: 1.2 !important;
+}
+
+.chat-message.assistant .message-content.markdown-body {
+  background: #e9ecef !important;
+  color: #2c3e50 !important;
+  border-radius: 12px;
+  border-top-left-radius: 4px;
+  padding: 12px !important;
+  line-height: 1.2 !important;
+}
+
+.chat-message.user .message-content.markdown-body {
+  background: #409eff !important;
+  color: #fff !important;
+  padding: 12px !important;
+}
+
+.chat-message.user .message-content.markdown-body p,
+.chat-message.user .message-content.markdown-body li,
+.chat-message.user .message-content.markdown-body ul,
+.chat-message.user .message-content.markdown-body ol {
+  color: #fff !important;
+}
+
+.chat-message.user .message-content.markdown-body pre {
+  background: rgba(255,255,255,0.1) !important;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.chat-message.user .message-content.markdown-body code {
+  background: rgba(255,255,255,0.15) !important;
+  color: #fff !important;
+}
+
+.chat-message.user .message-content.markdown-body pre code {
+  background: transparent !important;
+  color: #fff !important;
+}
+
+.chat-message .message-content.markdown-body p {
+  margin: 0 !important;
+  line-height: 1.2 !important;
+}
+
+.chat-message .message-content.markdown-body pre {
+  margin: 4px 0 !important;
+  padding: 8px !important;
+  line-height: 1.2 !important;
+}
+
+.chat-message .message-content.markdown-body pre code {
+  line-height: 1.2 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace !important;
+  display: block !important;
+}
+
+.chat-message .message-content.markdown-body pre code * {
+  line-height: 1.2 !important;
+  font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace !important;
+}
+
+.chat-message .message-content.markdown-body pre code span {
+  line-height: 1.2 !important;
+  display: inline !important;
+}
+
+/* 移除聊天框代码块中的多余换行 */
+.chat-message .message-content.markdown-body pre code br {
+  display: none !important;
+}
+
+/* 确保聊天框代码块内的文本不会被换行打断 */
+.chat-message .message-content.markdown-body pre code,
+.chat-message .message-content.markdown-body pre code span {
+  white-space: pre !important;
+  word-spacing: normal !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  tab-size: 2 !important;
+  hyphens: none !important;
+}
+
+/* 聊天框中标题的行间距 */
+.chat-message .message-content.markdown-body h1,
+.chat-message .message-content.markdown-body h2,
+.chat-message .message-content.markdown-body h3,
+.chat-message .message-content.markdown-body h4,
+.chat-message .message-content.markdown-body h5,
+.chat-message .message-content.markdown-body h6 {
+  margin: 4px 0 !important;
+  line-height: 1.2 !important;
+  padding: 0 !important;
+}
+
+/* 确保标题后的段落也保持紧凑 */
+.chat-message .message-content.markdown-body h1 + p,
+.chat-message .message-content.markdown-body h2 + p,
+.chat-message .message-content.markdown-body h3 + p,
+.chat-message .message-content.markdown-body h4 + p,
+.chat-message .message-content.markdown-body h5 + p,
+.chat-message .message-content.markdown-body h6 + p {
+  margin-top: 4px !important;
+}
+
+/* 确保内容紧凑显示 */
+.chat-message .message-content.markdown-body > *:first-child {
+  margin-top: 0 !important;
+}
+
+.chat-message .message-content.markdown-body > *:last-child {
+  margin-bottom: 0 !important;
 }
 </style>
