@@ -29,22 +29,24 @@
         </el-menu>
       </el-header>
       <el-container>
-        <el-aside style="width: 400px;overflow: hidden;padding-bottom: 5px;">
-          <el-card style="height: 100%;margin: 5px;" shadow="hover" v-loading="loading">
-            <h2>{{ problem.title }}</h2>
-            <el-tag :type="problem.grade === 'EASY' ? 'success' : problem.grade === 'GENERAL' ? 'warning' : 'danger'" 
-                   style="margin: 10px 0;">
-              {{ problem.grade === 'EASY' ? '简单' : problem.grade === 'GENERAL' ? '中等' : '困难' }}
-            </el-tag>
-            
-            <div style="margin: 15px 0">
-              <h3 style="margin-bottom: 10px">题目内容</h3>
-              <p>{{ problem.content }}</p>
-            </div>
-            
-            <div style="margin: 15px 0">
-              <h3 style="margin-bottom: 10px">题目要求</h3>
-              <p>{{ problem.require }}</p>
+        <el-aside class="problem-aside" style="width: 400px;">
+          <el-card class="problem-card" style="margin: 5px;" shadow="hover" v-loading="loading">
+            <div class="problem-content">
+              <h2>{{ problem.title }}</h2>
+              <el-tag :type="problem.grade === 'EASY' ? 'success' : problem.grade === 'GENERAL' ? 'warning' : 'danger'" 
+                     style="margin: 10px 0;">
+                {{ problem.grade === 'EASY' ? '简单' : problem.grade === 'GENERAL' ? '中等' : '困难' }}
+              </el-tag>
+              
+              <div style="margin: 15px 0">
+                <h3 style="margin-bottom: 10px">题目内容</h3>
+                <div v-html="markedContent"></div>
+              </div>
+              
+              <!-- <div style="margin: 15px 0">
+                <h3 style="margin-bottom: 10px">题目要求</h3>
+                <p>{{ problem.require }}</p>
+              </div> -->
             </div>
           </el-card>
         </el-aside>
@@ -93,6 +95,7 @@
 
 <script>
 import * as monaco from 'monaco-editor'
+import { marked } from 'marked'
 import { debugCode } from '@/api/code'
 import { getStudentProblemDetail } from '@/api/problem'
 
@@ -156,7 +159,8 @@ export default {
         grade: '',
         content: '',
         require: ''
-      }
+      },
+      markedContent: ''  // 新增用于存储渲染后的markdown内容
     }
   },
   watch: {
@@ -165,6 +169,14 @@ export default {
         this.init()
       },
       deep: true
+    },
+    'problem.content': {
+      handler(newVal) {
+        if (newVal) {
+          this.markedContent = marked(newVal)
+        }
+      },
+      immediate: true
     }
   },
   created() {
@@ -263,10 +275,58 @@ export default {
 <style>
 body {
   background: #F0F0F0;
-  overflow: scroll;
+  height: 100vh;
+  margin: 0;
 }
 
-body::-webkit-scrollbar { /* WebKit browsers */
-  display: none
+.code {
+  height: 100vh;
+}
+
+.el-container {
+  height: 100%;
+}
+
+.problem-aside {
+  height: calc(100vh - 60px);
+  overflow: hidden;
+}
+
+.problem-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  margin: 5px;
+}
+
+.problem-card .el-card__body {
+  height: 100%;
+  overflow: hidden;
+  padding: 20px;
+}
+
+.problem-content {
+  height: 100%;
+  overflow-y: auto;
+  padding-right: 10px;
+  text-align: left;
+}
+
+.problem-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.problem-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.problem-content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.problem-content::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 </style>
