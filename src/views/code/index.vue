@@ -4,15 +4,6 @@
       <el-header style="height: auto;width: 100%;padding:0px">
         <el-menu style="width: 100%" :default-active="activeIndex2" class="el-menu-demo" mode="horizontal"
                  @select="handleSelect" background-color="transparent" text-color="#1E1E1E" active-text-color="#000000">
-          <el-menu-item index="1">处理中心</el-menu-item>
-          <el-menu-item index="3" disabled>消息中心</el-menu-item>
-          <el-menu-item index="4"><a href="https://www.ele.me" target="_blank">订单管理</a></el-menu-item>
-          <el-menu-item index="s1" style="float: right;width: 150px;">
-
-          </el-menu-item>
-          <el-menu-item index="s2" style="float: right;width: 150px;">
-
-          </el-menu-item>
           <el-menu-item index="s3" style="float: right;width: 150px;">
             <el-select size="small" v-model="codeEditorSetting.theme" placeholder="主题"
                        @change="() => {this.monacoEditor.updateOptions({ theme: this.codeEditorSetting.theme })}">
@@ -39,10 +30,22 @@
       </el-header>
       <el-container>
         <el-aside style="width: 400px;overflow: hidden;padding-bottom: 5px;">
-          <el-card style="height: 100%;margin: 5px;" shadow="hover">
-            <h1>3123123</h1>
-            <h2>3123123123123123123123123</h2>
-            <h3>32123123123123123123123123</h3>
+          <el-card style="height: 100%;margin: 5px;" shadow="hover" v-loading="loading">
+            <h2>{{ problem.title }}</h2>
+            <el-tag :type="problem.grade === 'EASY' ? 'success' : problem.grade === 'GENERAL' ? 'warning' : 'danger'" 
+                   style="margin: 10px 0;">
+              {{ problem.grade === 'EASY' ? '简单' : problem.grade === 'GENERAL' ? '中等' : '困难' }}
+            </el-tag>
+            
+            <div style="margin: 15px 0">
+              <h3 style="margin-bottom: 10px">题目内容</h3>
+              <p>{{ problem.content }}</p>
+            </div>
+            
+            <div style="margin: 15px 0">
+              <h3 style="margin-bottom: 10px">题目要求</h3>
+              <p>{{ problem.require }}</p>
+            </div>
           </el-card>
         </el-aside>
         <el-container>
@@ -82,7 +85,6 @@
               </div>
             </el-card>
           </el-footer>
-
         </el-container>
       </el-container>
     </el-container>
@@ -90,10 +92,9 @@
 </template>
 
 <script>
-import * as monaco from 'monaco-editor';
-import {
-  debugCode
-} from '@/api/code';
+import * as monaco from 'monaco-editor'
+import { debugCode } from '@/api/code'
+import { getStudentProblemDetail } from '@/api/problem'
 
 export default {
   name: 'AcMonaco',
@@ -147,6 +148,14 @@ export default {
         language: 'java',//语言
         fontSize: '18px',//字体大小
         theme: 'vs'
+      },
+      // 题目信息
+      loading: false,
+      problem: {
+        title: '',
+        grade: '',
+        content: '',
+        require: ''
       }
     }
   },
@@ -158,34 +167,33 @@ export default {
       deep: true
     }
   },
+  created() {
+    this.getProblemDetail()
+  },
   mounted() {
-    this.init();
+    this.init()
     // 注册自定义语言
-    monaco.languages.register({id: 'customLang'});
+    monaco.languages.register({id: 'customLang'})
 
     // 定义语法高亮规则
     monaco.languages.setMonarchTokensProvider('customLang', {
       tokenizer: {
         root: [
           [/\/[^\s]+\.\w+/, 'type'], // 匹配路径格式
-          // 匹配 error 关键字并赋予 'keyword' 样式
           [/error/, 'keyword'],
-          // 匹配 ^ 符号并赋予 'caret' 样式
           [/\^/, 'string'],
-          // 其他规则...
-          [/[a-zA-Z_]\w*/, 'identifier'], // 匹配标识符
-          [/\d+/, 'number'], // 匹配数字
-          [/[{}()[]/, 'delimiter'], // 匹配括号，移除转义
-          [/"([^"]|\\.)*"/, 'string'], // 匹配字符串，确保不使用不必要的转义
-          [/'([^']|\\.)*'/, 'string'], // 匹配单引号字符串
+          [/[a-zA-Z_]\w*/, 'identifier'],
+          [/\d+/, 'number'],
+          [/[{}()[]/, 'delimiter'],
+          [/"([^"]|\\.)*"/, 'string'],
+          [/'([^']|\\.)*'/, 'string'],
         ],
       },
-    });
+    })
     //初始化输入输出框
-    this.outputEditor = monaco.editor.create(this.$refs.output, this.inoutOpts);
-    this.outputEditor.updateOptions({readOnly: true});
-    this.inputEditor = monaco.editor.create(this.$refs.input, this.inoutOpts);
-
+    this.outputEditor = monaco.editor.create(this.$refs.output, this.inoutOpts)
+    this.outputEditor.updateOptions({readOnly: true})
+    this.inputEditor = monaco.editor.create(this.$refs.input, this.inoutOpts)
   },
   methods: {
     init() {
@@ -206,26 +214,48 @@ export default {
     },
     //调试按钮网络请求
     debugBtn() {
-      this.outputEditor.setValue('');
-      this.isDebugLoad = true;
-      this.isDebugDisabled = true;
-      this.codeDebugForm.code = this.getVal();
-      this.codeDebugForm.input = this.inputEditor.getValue();
-      this.codeDebugForm.type = this.codeEditorSetting.language;
-      console.log(JSON.stringify(this.codeDebugForm));
+      this.outputEditor.setValue('')
+      this.isDebugLoad = true
+      this.isDebugDisabled = true
+      this.codeDebugForm.code = this.getVal()
+      this.codeDebugForm.input = this.inputEditor.getValue()
+      this.codeDebugForm.type = this.codeEditorSetting.language
+      console.log(JSON.stringify(this.codeDebugForm))
       debugCode(this.codeDebugForm).then(res => {
         if (res.data.code === 200) {
-          this.outputEditor.setValue(res.data.data);
-          this.$notify({title: '成功', message: '代码运行成功', type: 'success'});
+          this.outputEditor.setValue(res.data.data)
+          this.$notify({title: '成功', message: '代码运行成功', type: 'success'})
         } else {
-          this.$notify.error({title: '代码运行错误', message: res.data.msg});
-          this.outputEditor.setValue(res.data.msg);
+          this.$notify.error({title: '代码运行错误', message: res.data.msg})
+          this.outputEditor.setValue(res.data.msg)
         }
-        this.isDebugLoad = false;
-        this.isDebugDisabled = false;
+        this.isDebugLoad = false
+        this.isDebugDisabled = false
       })
-    }
+    },
+    // 获取题目详情
+    async getProblemDetail() {
+      const problemId = this.$route.query.problemId
+      if (!problemId) {
+        this.$message.error('题目ID不能为空')
+        return
+      }
 
+      this.loading = true
+      try {
+        const res = await getStudentProblemDetail(problemId)
+        if (res.data.code === 200) {
+          this.problem = res.data.data
+        } else {
+          this.$message.error(res.data.msg || '获取题目详情失败')
+        }
+      } catch (error) {
+        console.error('获取题目详情错误:', error)
+        this.$message.error('获取题目详情失败')
+      } finally {
+        this.loading = false
+      }
+    }
   }
 }
 </script>

@@ -139,16 +139,23 @@
         <!-- 题目表格 -->
         <el-table :data="problemList" v-loading="problemLoading">
           <el-table-column prop="title" label="题目标题"></el-table-column>
-          <el-table-column prop="grade" label="难度">
+          <el-table-column prop="grade" label="难度" width="100">
             <template slot-scope="scope">
               <el-tag :type="scope.row.grade === 'EASY' ? 'success' : scope.row.grade === 'GENERAL' ? 'warning' : 'danger'">
                 {{ scope.row.grade === 'EASY' ? '简单' : scope.row.grade === 'GENERAL' ? '中等' : '困难' }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="100">
+          <el-table-column prop="submitCount" label="提交次数" width="100"></el-table-column>
+          <el-table-column prop="passRate" label="通过率" width="100">
+            <template slot-scope="scope">
+              {{ scope.row.passRate ? (scope.row.passRate * 100).toFixed(1) + '%' : '0%' }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="150" fixed="right">
             <template slot-scope="scope">
               <el-button type="text" @click="handleViewProblem(scope.row)">查看</el-button>
+              <el-button type="primary" @click="handleStartProblem(scope.row)">开始做题</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -171,7 +178,7 @@
 </template>
 
 <script>
-import { getStudentClassPage, quitClass, getClassMembers, getClassProblemPage } from '@/api/class'
+import { getStudentClassPage, quitClass, getClassMembers, getStudentClassProblemPage, joinClass } from '@/api/class'
 import { getProblemPage } from '@/api/problem'
 
 export default {
@@ -183,6 +190,9 @@ export default {
       searchForm: {
         name: ''
       },
+      // 加入班级对话框
+      dialogAddClassVisible: false,
+      invitationCode: '', // 邀请码
       // 成员对话框
       memberDialogVisible: false,
       memberLoading: false,
@@ -285,7 +295,12 @@ export default {
     async queryProblems() {
       this.problemLoading = true
       try {
-        const res = await getClassProblemPage(this.problemQuery)
+        const res = await getStudentClassProblemPage({
+          classId: this.currentClassId,
+          pageNo: this.problemQuery.pageNo,
+          pageSize: this.problemQuery.pageSize,
+          name: this.problemQuery.name || ''
+        })
         if (res.data.code === 200) {
           this.problemList = res.data.data.records
           this.problemTotal = res.data.data.total 
@@ -358,6 +373,62 @@ export default {
       const hour = String(date.getHours()).padStart(2, '0')
       const minute = String(date.getMinutes()).padStart(2, '0')
       return `${year}-${month}-${day} ${hour}:${minute}`
+    },
+    // 重置题目搜索
+    resetProblemSearch() {
+      this.problemQuery.name = ''
+      this.queryProblems()
+    },
+    // 开始做题
+    async handleStartProblem(problem) {
+      this.problemDialogVisible = false
+      this.$router.push({
+        path: '/code',
+        query: {
+          problemId: problem.id,
+          classId: this.currentClassId,
+          classProblemId: problem.classProblemId
+        }
+      })
+    },
+    // 处理下拉菜单命令
+    handleCommand(item, command) {
+      switch (command) {
+        case '1': // 复制邀请码
+          this.handleCopy(item.invitationCode)
+          break
+        case '2': // 退出班级
+          this.handleQuit(item.id)
+          break
+        case '3': // 查看成员
+          this.handleViewMembers(item.id)
+          break
+        case '4': // 查看题目
+          this.handleViewProblems(item.id)
+          break
+      }
+    },
+    // 加入班级
+    async handleJoinClass() {
+      if (!this.invitationCode) {
+        this.$message.warning('请输入邀请码')
+        return
+      }
+
+      try {
+        const res = await joinClass(this.invitationCode)
+        if (res.data.code === 200) {
+          this.$message.success('加入班级成功')
+          this.dialogAddClassVisible = false
+          this.invitationCode = ''
+          this.getClassList()
+        } else {
+          this.$message.error(res.data.msg || '加入班级失败')
+        }
+      } catch (error) {
+        console.error('加入班级错误:', error)
+        this.$message.error('加入班级失败')
+      }
     }
   }
 }

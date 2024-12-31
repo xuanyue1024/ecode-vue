@@ -51,3 +51,14 @@ export const getClassMembers = (params: any) =>
 // 学生查询班级列表
 export const getStudentClassPage = (params: any) =>
   getRequest(`/api/student/class/page?pageNo=${params.pageNo}&pageSize=${params.pageSize}&name=${params.name || ''}&isAsc=${params.isAsc || false}&sortBy=${params.sortBy || ''}`)
+
+// 学生端班级题目分页查询
+export const getStudentClassProblemPage = (params: {
+  classId: number,
+  pageNo: number,
+  pageSize: number,
+  name?: string,
+  isAsc?: boolean,
+  sortBy?: string
+}) =>
+  getRequest(`/api/student/class/problem/page?classId=${params.classId}&pageNo=${params.pageNo}&pageSize=${params.pageSize}&name=${params.name || ''}&isAsc=${params.isAsc || false}&sortBy=${params.sortBy || ''}`)
