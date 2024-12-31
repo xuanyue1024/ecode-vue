@@ -1,51 +1,89 @@
 <template>
-  <div>
-    <div style="text-align: left;margin-left: 20px">
-      <el-input placeholder="请输入内容" prefix-icon="el-icon-search" v-model="searchForm.name" style="max-width: 200px"/>
-      <el-button type="primary" icon="el-icon-search" style="margin-left: 10px" @click="handleSearch">搜索</el-button>
-      <el-button type="primary" icon="el-icon-plus" @click="dialogAddClassVisible = true">加入班级</el-button>
-      <!--  加入班级表单  -->
-      <el-dialog title="加入班级" :visible.sync="dialogAddClassVisible" width="400px">
-        <el-form>
-          <el-form-item label="邀请码" label-width="90px">
-            <el-input v-model="invitationCode" autocomplete="off" ></el-input>
-          </el-form-item>
-        </el-form>
-        <div slot="footer" class="dialog-footer">
-          <el-button @click="dialogAddClassVisible = false">取 消</el-button>
-          <el-button type="primary" @click="handleJoinClass">确 定</el-button>
-        </div>
-      </el-dialog>
+  <div class="my-class-container">
+    <!-- 顶部搜索和操作栏 -->
+    <div class="header-actions">
+      <div class="search-box">
+        <el-input
+          v-model="searchForm.name"
+          placeholder="搜索班级"
+          prefix-icon="el-icon-search"
+          clearable
+          @clear="handleSearch"
+          @keyup.enter.native="handleSearch">
+        </el-input>
+        <el-button type="primary" @click="handleSearch" icon="el-icon-search">搜索</el-button>
+      </div>
+      <el-button type="success" icon="el-icon-plus" @click="dialogAddClassVisible = true">加入班级</el-button>
     </div>
-    <div class="card-container">
-      <el-card class="box-card" v-for="i in classList" :key="i.id">
-        <div class="card-header">
-          <div style="text-align: right">
-            <el-dropdown trigger="click" @command="handleCommand(i,$event)">
-              <img src="../../../assets/more.svg" alt="icon" style="width: 20px;height: 20px" />
-              <!-- 下拉菜单 -->
-              <el-dropdown-menu slot="dropdown">
-                <el-dropdown-item command="1">复制邀请码</el-dropdown-item>
-                <el-dropdown-item command="2">退出班级</el-dropdown-item>
-                <el-dropdown-item command="3">查看成员</el-dropdown-item>
-                <el-dropdown-item command="4">查看题目</el-dropdown-item>
-              </el-dropdown-menu>
-            </el-dropdown>
-          </div>
 
-          <div style="text-align: center;margin-top: 0px"><span style="font-size: 18px">{{ i.name }}</span></div>
+    <!-- 班级卡片列表 -->
+    <div class="class-grid" v-loading="loading">
+      <el-card 
+        v-for="item in classList" 
+        :key="item.id" 
+        class="class-card"
+        :body-style="{ padding: '0px' }">
+        <div class="card-header">
+          <span class="class-name">{{ item.name }}</span>
+          <el-dropdown trigger="click" @command="handleCommand(item, $event)">
+            <i class="el-icon-more"></i>
+            <el-dropdown-menu slot="dropdown">
+              <el-dropdown-item command="1" icon="el-icon-copy-document">复制邀请码</el-dropdown-item>
+              <el-dropdown-item command="2" icon="el-icon-close">退出班级</el-dropdown-item>
+              <el-dropdown-item command="3" icon="el-icon-user">查看成员</el-dropdown-item>
+              <el-dropdown-item command="4" icon="el-icon-notebook-2">查看题目</el-dropdown-item>
+            </el-dropdown-menu>
+          </el-dropdown>
         </div>
         <div class="card-content">
-          <img src="../../../assets/touxiang.png" alt="Avatar" class="avatar" style="width: 55px;height: 55px">
-          <div class="user-name">{{ i.teacherName }}</div>
-        </div>
-        <div class="card-footer">
-          <span><i class="el-icon-user"></i>&nbsp;{{ i.joinNumber }}</span>
-          <span><i class="el-icon-time"></i>&nbsp;{{ formatDate(i.createTime) }}</span>
-          <el-button style="float: right; padding: 3px 0" type="text">进入班级</el-button>
+          <div class="teacher-info">
+            <el-avatar :size="50" icon="el-icon-user-solid"></el-avatar>
+            <div class="info-text">
+              <div class="teacher-name">{{ item.teacherName }}</div>
+              <div class="create-time">创建于: {{ formatDate(item.createTime) }}</div>
+            </div>
+          </div>
+          <div class="class-stats">
+            <div class="stat-item">
+              <i class="el-icon-user"></i>
+              <span>{{ item.joinNumber }} 名学生</span>
+            </div>
+            <div class="stat-item">
+              <i class="el-icon-notebook-2"></i>
+              <span>{{ item.problemCount || 0 }} 道题目</span>
+            </div>
+          </div>
+          <el-button 
+            type="primary" 
+            class="enter-btn" 
+            @click="handleEnterClass(item)">
+            进入班级
+          </el-button>
         </div>
       </el-card>
     </div>
+
+    <!-- 加入班级对话框 -->
+    <el-dialog 
+      title="加入班级" 
+      :visible.sync="dialogAddClassVisible" 
+      width="400px"
+      custom-class="join-class-dialog">
+      <el-form>
+        <el-form-item label="邀请码">
+          <el-input 
+            v-model="invitationCode" 
+            placeholder="请输入班级邀请码"
+            maxlength="20"
+            show-word-limit>
+          </el-input>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="dialogAddClassVisible = false">取 消</el-button>
+        <el-button type="primary" @click="handleJoinClass">确 定</el-button>
+      </div>
+    </el-dialog>
 
     <!-- 班级成员对话框 -->
     <el-dialog title="班级成员" :visible.sync="memberDialogVisible" width="800px">
@@ -133,7 +171,7 @@
 </template>
 
 <script>
-import { getClassList, quitClass, getClassMemberPage, getClassProblemPage } from '@/api/class'
+import { getStudentClassPage, quitClass, getClassMembers, getClassProblemPage } from '@/api/class'
 import { getProblemPage } from '@/api/problem'
 
 export default {
@@ -176,9 +214,13 @@ export default {
     async getClassList() {
       this.loading = true
       try {
-        const res = await getClassList()
+        const res = await getStudentClassPage({
+          pageNo: 1,
+          pageSize: 1000,
+          name: this.searchForm.name
+        })
         if (res.data.code === 200) {
-          this.classList = res.data.data
+          this.classList = res.data.data.records
         } else {
           this.$message.error(res.data.msg || '获取班级列表失败')
         }
@@ -209,7 +251,7 @@ export default {
     async queryMembers() {
       this.memberLoading = true
       try {
-        const res = await getClassMemberPage(this.memberQuery)
+        const res = await getClassMembers(this.memberQuery)
         if (res.data.code === 200) {
           this.memberList = res.data.data.records
           this.memberTotal = res.data.data.total  
@@ -322,54 +364,120 @@ export default {
 </script>
 
 <style scoped>
-.card-container {
-  display: flex;
-  flex-wrap: wrap; /* 允许换行 */
-  justify-content: flex-start; /* 左对齐 */
+.my-class-container {
+  padding: 20px;
+  background-color: #f5f7fa;
+  min-height: calc(100vh - 120px);
 }
 
-.box-card {
-  width: 280px;
-  height: 270px;
-  margin: 20px;
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 0 6px rgba(0, 0, 0, 0.04);
+.header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.search-box {
+  display: flex;
+  gap: 10px;
+}
+
+.search-box .el-input {
+  width: 300px;
+}
+
+.class-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 10px 0;
+}
+
+.class-card {
+  transition: all 0.3s;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.class-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.1);
 }
 
 .card-header {
+  background: linear-gradient(135deg, #1890ff, #52c41a);
+  color: white;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.class-name {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.el-icon-more {
+  cursor: pointer;
   padding: 5px;
+  border-radius: 50%;
+}
+
+.el-icon-more:hover {
+  background: rgba(255,255,255,0.2);
 }
 
 .card-content {
   padding: 20px;
-  padding-top: 10px;
-  padding-bottom: 30px;
-  text-align: center;
 }
 
-.avatar {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  margin: 10px 0;
-}
-
-.user-name {
-  font-size: 16px;
-  margin-bottom: 10px;
-}
-
-.card-footer {
+.teacher-info {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 10px;
-  border-top: 1px solid #ebeef5; /* 添加分割线 */
+  margin-bottom: 20px;
 }
 
-.el-card__body{
-  padding: 5px;
+.info-text {
+  margin-left: 15px;
+}
+
+.teacher-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+.create-time {
+  font-size: 12px;
+  color: #999;
+  margin-top: 5px;
+}
+
+.class-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #666;
+}
+
+.stat-item i {
+  color: #1890ff;
+}
+
+.enter-btn {
+  width: 100%;
+  border-radius: 4px;
+}
+
+.join-class-dialog .el-dialog__body {
+  padding: 30px 20px;
 }
 
 .member-list,
@@ -380,5 +488,25 @@ export default {
 .pagination {
   margin-top: 20px;
   text-align: right;
+}
+
+/* 响应式布局 */
+@media screen and (max-width: 768px) {
+  .header-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .search-box {
+    width: 100%;
+  }
+  
+  .search-box .el-input {
+    width: 100%;
+  }
+  
+  .class-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
