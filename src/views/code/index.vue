@@ -31,7 +31,7 @@
                         <div class="avatar">
                           <i class="el-icon-service"></i>
                         </div>
-                        <div class="message-content">{{ message.content }}</div>
+                        <div class="message-content markdown-body" v-html="renderMarkdown(message.content)"></div>
                       </template>
                     </div>
                   </template>
@@ -484,7 +484,15 @@ export default {
         this.$message.error('发送消息失败')
         this.chatLoading = false
       }
-    }
+    },
+    renderMarkdown(content) {
+      try {
+        return marked(content || '')
+      } catch (error) {
+        console.error('Markdown 渲染错误:', error)
+        return content
+      }
+    },
   }
 }
 </script>
@@ -806,7 +814,7 @@ html, body {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 16px;
-  background: #fff;
+  background: #f7f8fa;
   width: 100%;
   box-sizing: border-box;
 }
@@ -875,11 +883,66 @@ html, body {
 }
 
 .chat-messages .message.assistant .message-content {
-  background: #f4f4f5;
+  background: #e9ecef;
   color: #2c3e50;
   margin-right: 20%;
   margin-left: 8px;
   font-weight: 400;
+}
+
+.chat-message.assistant .message-content.markdown-body {
+  background: #e9ecef !important;
+  color: #2c3e50 !important;
+  border-radius: 12px;
+  border-top-left-radius: 4px;
+  padding: 16px !important;
+  line-height: 1.4 !important;
+}
+
+.chat-message.assistant .message-content.markdown-body p {
+  color: #2c3e50 !important;
+  margin: 4px 0 !important;
+  line-height: 1.4 !important;
+}
+
+.chat-message.assistant .message-content.markdown-body h1,
+.chat-message.assistant .message-content.markdown-body h2,
+.chat-message.assistant .message-content.markdown-body h3,
+.chat-message.assistant .message-content.markdown-body h4,
+.chat-message.assistant .message-content.markdown-body h5,
+.chat-message.assistant .message-content.markdown-body h6 {
+  margin: 8px 0 4px !important;
+  line-height: 1.4 !important;
+}
+
+.chat-message.assistant .message-content.markdown-body ul,
+.chat-message.assistant .message-content.markdown-body ol {
+  color: #2c3e50 !important;
+  padding-left: 24px !important;
+  margin: 4px 0 !important;
+}
+
+.chat-message.assistant .message-content.markdown-body li {
+  color: #2c3e50 !important;
+  margin: 2px 0 !important;
+  line-height: 1.4 !important;
+}
+
+.chat-message.assistant .message-content.markdown-body pre {
+  margin: 6px 0 !important;
+  background: #f8f9fa !important;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+  padding: 12px !important;
+}
+
+.chat-message.assistant .message-content.markdown-body blockquote {
+  color: #57606a !important;
+  border-left-color: #d0d7de !important;
+  background: rgba(175,184,193,0.2) !important;
+  padding: 0.25em 1em !important;
+  margin: 6px 0 !important;
+  line-height: 1.4 !important;
 }
 
 .chat-input {
@@ -965,7 +1028,7 @@ html, body {
 }
 
 .chat-message.assistant {
-  padding-right: 20%;
+  justify-content: flex-start;
 }
 
 .chat-message .avatar {
@@ -1012,10 +1075,65 @@ html, body {
 }
 
 .chat-message.assistant .message-content {
-  background: #f4f4f5;
+  background: #e9ecef;
   color: #2c3e50;
   margin-right: 20%;
   margin-left: 8px;
   font-weight: 400;
+}
+
+.chat-message.assistant .message-content.markdown-body {
+  background: #e9ecef !important;
+  color: #2c3e50 !important;
+  border-radius: 12px;
+  border-top-left-radius: 4px;
+  padding: 16px !important;
+  line-height: 1.4 !important;
+}
+
+.chat-message.assistant .message-content.markdown-body p {
+  color: #2c3e50 !important;
+  margin: 4px 0 !important;
+  line-height: 1.4 !important;
+}
+
+.chat-message.assistant .message-content.markdown-body h1,
+.chat-message.assistant .message-content.markdown-body h2,
+.chat-message.assistant .message-content.markdown-body h3,
+.chat-message.assistant .message-content.markdown-body h4,
+.chat-message.assistant .message-content.markdown-body h5,
+.chat-message.assistant .message-content.markdown-body h6 {
+  margin: 8px 0 4px !important;
+  line-height: 1.4 !important;
+}
+
+.chat-message.assistant .message-content.markdown-body ul,
+.chat-message.assistant .message-content.markdown-body ol {
+  color: #2c3e50 !important;
+  padding-left: 24px !important;
+  margin: 4px 0 !important;
+}
+
+.chat-message.assistant .message-content.markdown-body li {
+  color: #2c3e50 !important;
+  margin: 2px 0 !important;
+  line-height: 1.4 !important;
+}
+
+.chat-message.assistant .message-content.markdown-body pre {
+  margin: 6px 0 !important;
+  background: #f8f9fa !important;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+  padding: 12px !important;
+}
+
+.chat-message.assistant .message-content.markdown-body blockquote {
+  color: #57606a !important;
+  border-left-color: #d0d7de !important;
+  background: rgba(175,184,193,0.2) !important;
+  padding: 0.25em 1em !important;
+  margin: 6px 0 !important;
+  line-height: 1.4 !important;
 }
 </style>
