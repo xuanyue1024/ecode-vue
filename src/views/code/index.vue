@@ -13,42 +13,58 @@
               placement="bottom-start"
               width="500"
               trigger="click"
-              v-model="showAiChat">
-              <div class="ai-chat-container">
-                <div class="chat-header">
-                  <span>AI 助手</span>
+              v-model="showAiChat"
+              popper-class="ai-chat-popover">
+              <vue-draggable-resizable
+                :w="500"
+                :h="600"
+                :min-width="400"
+                :min-height="300"
+                :max-width="800"
+                :max-height="800"
+                :draggable="true"
+                :resizable="true"
+                :parent="false"
+                :prevent-deactivation="true"
+                :active="true"
+                class="chat-wrapper"
+                @resizing="onResize">
+                <div class="ai-chat-container" :style="{ width: '100%', height: '100%' }">
+                  <div class="chat-header">
+                    <span>AI 助手</span>
+                  </div>
+                  <div class="chat-messages" ref="messageContainer">
+                    <template v-for="(message, index) in messages">
+                      <div :key="index" :class="['chat-message', message.role]">
+                        <template v-if="message.role === 'user'">
+                          <div class="message-content">{{ message.content }}</div>
+                          <div class="avatar">
+                            <i class="el-icon-user"></i>
+                          </div>
+                        </template>
+                        <template v-else>
+                          <div class="avatar">
+                            <i class="el-icon-service"></i>
+                          </div>
+                          <div class="message-content markdown-body" v-html="renderMarkdown(message.content)"></div>
+                        </template>
+                      </div>
+                    </template>
+                  </div>
+                  <div class="chat-input">
+                    <el-input
+                      v-model="inputMessage"
+                      type="textarea"
+                      :rows="2"
+                      placeholder="请输入消息..."
+                      @keyup.enter.native="sendMessage"
+                    />
+                    <el-button type="primary" circle @click="sendMessage" :loading="chatLoading">
+                      <i class="el-icon-s-promotion"></i>
+                    </el-button>
+                  </div>
                 </div>
-                <div class="chat-messages" ref="messageContainer">
-                  <template v-for="(message, index) in messages">
-                    <div :key="index" :class="['chat-message', message.role]">
-                      <template v-if="message.role === 'user'">
-                        <div class="message-content">{{ message.content }}</div>
-                        <div class="avatar">
-                          <i class="el-icon-user"></i>
-                        </div>
-                      </template>
-                      <template v-else>
-                        <div class="avatar">
-                          <i class="el-icon-service"></i>
-                        </div>
-                        <div class="message-content markdown-body" v-html="renderMarkdown(message.content)"></div>
-                      </template>
-                    </div>
-                  </template>
-                </div>
-                <div class="chat-input">
-                  <el-input
-                    v-model="inputMessage"
-                    type="textarea"
-                    :rows="2"
-                    placeholder="请输入消息..."
-                    @keyup.enter.native="sendMessage"
-                  />
-                  <el-button type="primary" circle @click="sendMessage" :loading="chatLoading">
-                    <i class="el-icon-s-promotion"></i>
-                  </el-button>
-                </div>
-              </div>
+              </vue-draggable-resizable>
               <i class="el-icon-chat-dot-round" slot="reference" style="font-size: 20px;"></i>
             </el-popover>
           </el-menu-item>
@@ -152,9 +168,14 @@ import katex from 'katex'
 import 'github-markdown-css/github-markdown.css'
 import { debugCode } from '@/api/code'
 import { getStudentProblemDetail } from '@/api/problem'
+import VueDraggableResizable from 'vue-draggable-resizable-gorkys'
+import 'vue-draggable-resizable-gorkys/dist/VueDraggableResizable.css'
 
 export default {
   name: 'AcMonaco',
+  components: {
+    VueDraggableResizable
+  },
   props: {
     opts: {
       type: Object,
@@ -493,6 +514,12 @@ export default {
         return content
       }
     },
+    onResize(x, y, width, height) {
+      // 可以在这里处理大小变化的逻辑
+      this.$nextTick(() => {
+        this.scrollToBottom()
+      })
+    }
   }
 }
 </script>
@@ -1135,5 +1162,77 @@ html, body {
   padding: 0.25em 1em !important;
   margin: 6px 0 !important;
   line-height: 1.4 !important;
+}
+
+.ai-chat-popover {
+  padding: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  border: none !important;
+  overflow: visible !important;
+  max-width: none !important;
+  max-height: none !important;
+}
+
+.chat-wrapper {
+  background: transparent;
+  position: fixed !important;
+  z-index: 2000;
+}
+
+.chat-wrapper .handle {
+  background: transparent !important;
+  border: none !important;
+}
+
+.vdr {
+  border: none !important;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+  touch-action: none;
+}
+
+.vdr-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+/* 调整拖拽手柄的样式 */
+.vdr-handle {
+  background-color: #409eff !important;
+  border: none !important;
+  opacity: 0;
+  transition: opacity 0.2s;
+  width: 12px !important;
+  height: 12px !important;
+}
+
+.vdr-handle-br {
+  bottom: -6px !important;
+  right: -6px !important;
+}
+
+.vdr-handle-bl {
+  bottom: -6px !important;
+  left: -6px !important;
+}
+
+.vdr-handle-tr {
+  top: -6px !important;
+  right: -6px !important;
+}
+
+.vdr-handle-tl {
+  top: -6px !important;
+  left: -6px !important;
+}
+
+.vdr:hover .vdr-handle {
+  opacity: 0.3;
+}
+
+.vdr .vdr-handle:hover {
+  opacity: 0.6 !important;
+  cursor: se-resize;
 }
 </style>
