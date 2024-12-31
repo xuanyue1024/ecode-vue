@@ -5,6 +5,53 @@
       <el-header style="height: auto;width: 100%;padding:0px">
         <el-menu style="width: 100%" :default-active="activeIndex2" class="el-menu-demo" mode="horizontal"
                  @select="handleSelect" background-color="transparent" text-color="#1E1E1E" active-text-color="#000000">
+          <el-menu-item index="back" class="menu-left-item">
+            <i class="el-icon-back" @click="goBack"></i>
+          </el-menu-item>
+          <el-menu-item index="ai" class="menu-left-item">
+            <el-popover
+              placement="bottom-start"
+              width="500"
+              trigger="click"
+              v-model="showAiChat">
+              <div class="ai-chat-container">
+                <div class="chat-header">
+                  <span>AI 助手</span>
+                </div>
+                <div class="chat-messages" ref="messageContainer">
+                  <template v-for="(message, index) in messages">
+                    <div :key="index" :class="['chat-message', message.role]">
+                      <template v-if="message.role === 'user'">
+                        <div class="message-content">{{ message.content }}</div>
+                        <div class="avatar">
+                          <i class="el-icon-user"></i>
+                        </div>
+                      </template>
+                      <template v-else>
+                        <div class="avatar">
+                          <i class="el-icon-service"></i>
+                        </div>
+                        <div class="message-content">{{ message.content }}</div>
+                      </template>
+                    </div>
+                  </template>
+                </div>
+                <div class="chat-input">
+                  <el-input
+                    v-model="inputMessage"
+                    type="textarea"
+                    :rows="2"
+                    placeholder="请输入消息..."
+                    @keyup.enter.native="sendMessage"
+                  />
+                  <el-button type="primary" circle @click="sendMessage" :loading="chatLoading">
+                    <i class="el-icon-s-promotion"></i>
+                  </el-button>
+                </div>
+              </div>
+              <i class="el-icon-chat-dot-round" slot="reference" style="font-size: 20px;"></i>
+            </el-popover>
+          </el-menu-item>
           <el-menu-item index="s3" class="setting-menu-item" style="float: right; padding-right: 20px; width: auto;">
             <div class="editor-settings">
               <el-select size="small" v-model="codeEditorSetting.theme" placeholder="主题" style="width: 100px; margin-right: 10px;"
@@ -167,7 +214,12 @@ export default {
         content: '',
         require: ''
       },
-      markedContent: ''  // 新增用于存储渲染后的markdown内容
+      markedContent: '',  // 新增用于存储渲染后的markdown内容
+      // AI 聊天相关
+      showAiChat: false,
+      messages: [],
+      inputMessage: '',
+      chatLoading: false,
     }
   },
   watch: {
@@ -316,6 +368,121 @@ export default {
         this.$message.error('获取题目详情失败')
       } finally {
         this.loading = false
+      }
+    },
+    goBack() {
+      this.$router.go(-1)
+    },
+    async scrollToBottom() {
+      await this.$nextTick()
+      const container = this.$refs.messageContainer
+      if (container) {
+        container.scrollTop = container.scrollHeight
+      }
+    },
+    async sendMessage() {
+      if (!this.inputMessage.trim()) {
+        this.$message.warning('请输入消息')
+        return
+      }
+
+      // 添加用户消息
+      this.messages.push({
+        role: 'user',
+        content: this.inputMessage
+      })
+      
+      const userMessage = this.inputMessage
+      this.inputMessage = ''
+      this.chatLoading = true
+
+      try {
+        // 添加 AI 回复消息
+        this.messages.push({
+          role: 'assistant',
+          content: ''
+        })
+
+        const token = window.localStorage.getItem('token') || window.sessionStorage.getItem('token')
+        
+        // 创建 POST 请求
+        const response = await fetch('/api/user/ai/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            aiAction: 'NEXT',
+            content: userMessage,
+            token: token || ''
+          })
+        })
+
+        // 获取响应的 reader
+        const reader = response.body?.getReader()
+        if (!reader) {
+          throw new Error('Failed to get reader')
+        }
+        const decoder = new TextDecoder('utf-8')
+        let buffer = ''
+        
+        let isReading = true
+        while (isReading) {
+          const { done, value } = await reader.read()
+          if (done) {
+            isReading = false
+            break
+          }
+
+          // 解码响应数据
+          const chunk = decoder.decode(value, { stream: true })
+          buffer += chunk
+          
+          // 处理完整的行
+          const lines = buffer.split('\n')
+          buffer = lines.pop() || ''
+          
+          for (const line of lines) {
+            if (line.startsWith('data:')) {
+              try {
+                const jsonData = JSON.parse(line.slice(5))
+                if (jsonData.code === 200 && jsonData.data !== null) {
+                  const lastMessage = this.messages[this.messages.length - 1]
+                  lastMessage.content += jsonData.data
+                  await this.scrollToBottom()
+                }
+              } catch (error) {
+                console.error('Error parsing message:', error)
+              }
+            }
+          }
+        }
+
+        if (buffer.length > 0) {
+          const lines = buffer.split('\n')
+          for (const line of lines) {
+            if (line.startsWith('data:')) {
+              try {
+                const jsonData = JSON.parse(line.slice(5))
+                if (jsonData.code === 200 && jsonData.data !== null) {
+                  const lastMessage = this.messages[this.messages.length - 1]
+                  lastMessage.content += jsonData.data
+                  await this.scrollToBottom()
+                }
+              } catch (error) {
+                console.error('Error parsing message:', error)
+              }
+            }
+          }
+        }
+
+        decoder.decode()
+        this.chatLoading = false
+
+      } catch (error) {
+        console.error('Error:', error)
+        this.$message.error('发送消息失败')
+        this.chatLoading = false
       }
     }
   }
@@ -600,5 +767,255 @@ html, body {
   height: 24px;
   line-height: 24px;
   padding: 0 8px;
+}
+
+/* 左侧菜单项样式 */
+.menu-left-item {
+  padding: 0 15px !important;
+}
+
+.menu-left-item i {
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* AI 聊天窗口样式 */
+.ai-chat-container {
+  height: 600px;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+  overflow: hidden;
+  width: 100%;
+}
+
+.chat-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #ebeef5;
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+  background: #f8f9fb;
+  border-radius: 8px 8px 0 0;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+  background: #fff;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.chat-messages .message {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  max-width: 100%;
+}
+
+.chat-messages .message .avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.chat-messages .message.user {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+}
+
+.chat-messages .message.assistant {
+  flex-direction: row;
+  justify-content: flex-start;
+}
+
+.chat-messages .message.user .avatar {
+  margin-right: 0;
+  margin-left: 8px;
+  background: #409eff;
+  color: white;
+}
+
+.chat-messages .message.assistant .avatar {
+  margin-right: 8px;
+  margin-left: 0;
+  background: #95a5a6;
+  color: white;
+}
+
+.chat-messages .message-content {
+  max-width: calc(100% - 50px);
+  padding: 10px 14px;
+  border-radius: 12px;
+  word-wrap: break-word;
+  word-break: break-word;
+  line-height: 1.6;
+  font-size: 15px;
+  white-space: pre-wrap;
+  box-sizing: border-box;
+  font-weight: 400;
+}
+
+.chat-messages .message.user .message-content {
+  background: #409eff;
+  color: #fff;
+  margin-left: 20%;
+  margin-right: 8px;
+  font-weight: 400;
+}
+
+.chat-messages .message.assistant .message-content {
+  background: #f4f4f5;
+  color: #2c3e50;
+  margin-right: 20%;
+  margin-left: 8px;
+  font-weight: 400;
+}
+
+.chat-input {
+  padding: 12px;
+  border-top: 1px solid #ebeef5;
+  background: #fff;
+  border-radius: 0 0 8px 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.chat-input .el-textarea {
+  flex: 1;
+  overflow: hidden;
+  width: 0; /* 让 flex: 1 生效 */
+}
+
+.chat-input .el-textarea__inner {
+  border-radius: 8px;
+  resize: none;
+  height: 45px !important;
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 14px;
+  color: #2c3e50;
+}
+
+.chat-input .el-button {
+  height: 45px;
+  width: 45px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.chat-input .el-button i {
+  font-size: 20px;
+}
+
+/* 滚动条样式 */
+.chat-messages::-webkit-scrollbar {
+  width: 6px;
+  background: transparent;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: #dcdfe680;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.chat-messages:hover::-webkit-scrollbar-thumb {
+  background: #dcdfe6;
+}
+
+.el-popover {
+  padding: 0 !important;
+  border-radius: 8px !important;
+}
+
+/* AI 聊天消息样式 */
+.chat-message {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.chat-message.user {
+  justify-content: flex-end;
+}
+
+.chat-message.assistant {
+  padding-right: 20%;
+}
+
+.chat-message .avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.chat-message.user .avatar {
+  margin-left: 8px;
+  background: #409eff;
+  color: white;
+}
+
+.chat-message.assistant .avatar {
+  margin-right: 8px;
+  background: #95a5a6;
+  color: white;
+}
+
+.chat-message .message-content {
+  max-width: calc(100% - 50px);
+  padding: 10px 14px;
+  border-radius: 12px;
+  word-wrap: break-word;
+  word-break: break-word;
+  line-height: 1.6;
+  font-size: 15px;
+  white-space: pre-wrap;
+  box-sizing: border-box;
+  font-weight: 400;
+}
+
+.chat-message.user .message-content {
+  background: #409eff;
+  color: #fff;
+  margin-left: 20%;
+  margin-right: 8px;
+  font-weight: 400;
+}
+
+.chat-message.assistant .message-content {
+  background: #f4f4f5;
+  color: #2c3e50;
+  margin-right: 20%;
+  margin-left: 8px;
+  font-weight: 400;
 }
 </style>
