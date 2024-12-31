@@ -1,30 +1,33 @@
 <template>
   <div class="code">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
     <el-container>
       <el-header style="height: auto;width: 100%;padding:0px">
         <el-menu style="width: 100%" :default-active="activeIndex2" class="el-menu-demo" mode="horizontal"
                  @select="handleSelect" background-color="transparent" text-color="#1E1E1E" active-text-color="#000000">
-          <el-menu-item index="s3" style="float: right;width: 150px;">
-            <el-select size="small" v-model="codeEditorSetting.theme" placeholder="主题"
+          <el-menu-item index="s3" class="setting-menu-item" style="float: right; padding-right: 20px; width: auto;">
+            <div class="editor-settings">
+              <el-select size="small" v-model="codeEditorSetting.theme" placeholder="主题" style="width: 100px; margin-right: 10px;"
                        @change="() => {this.monacoEditor.updateOptions({ theme: this.codeEditorSetting.theme })}">
-              <el-option value="vs-dark" label="vs-dark"></el-option>
-              <el-option value="hc-black" label="hc-black"></el-option>
-              <el-option value="vs" label="vs"></el-option>
-            </el-select>
-            <el-select size="small" v-model="codeEditorSetting.language" placeholder="语言"
+                <el-option value="vs-dark" label="vs-dark"></el-option>
+                <el-option value="hc-black" label="hc-black"></el-option>
+                <el-option value="vs" label="vs"></el-option>
+              </el-select>
+              <el-select size="small" v-model="codeEditorSetting.language" placeholder="语言" style="width: 100px; margin-right: 10px;"
                        @change="() => {this.monacoEditor.updateOptions({ language: this.codeEditorSetting.language });this.monacoEditor.setValue($store.state.exampleCode.get(this.codeEditorSetting.language))}">
-              <el-option value="java" label="java"></el-option>
-              <el-option value="python3" label="python3"></el-option>
-              <el-option value="cpp" label="cpp"></el-option>
-            </el-select>
-            <el-select size="small" v-model="codeEditorSetting.fontSize" placeholder="字体大小"
+                <el-option value="java" label="java"></el-option>
+                <el-option value="python3" label="python3"></el-option>
+                <el-option value="cpp" label="cpp"></el-option>
+              </el-select>
+              <el-select size="small" v-model="codeEditorSetting.fontSize" placeholder="字体大小" style="width: 100px;"
                        @change="() => {this.monacoEditor.updateOptions({ fontSize: this.codeEditorSetting.fontSize })}">
-              <el-option value="12px" label="12px"></el-option>
-              <el-option value="14px" label="14px"></el-option>
-              <el-option value="16px" label="16px"></el-option>
-              <el-option value="18px" label="18px"></el-option>
-              <el-option value="20px" label="20px"></el-option>
-            </el-select>
+                <el-option value="12px" label="12px"></el-option>
+                <el-option value="14px" label="14px"></el-option>
+                <el-option value="16px" label="16px"></el-option>
+                <el-option value="18px" label="18px"></el-option>
+                <el-option value="20px" label="20px"></el-option>
+              </el-select>
+            </div>
           </el-menu-item>
         </el-menu>
       </el-header>
@@ -32,15 +35,17 @@
         <el-aside class="problem-aside" style="width: 400px;">
           <el-card class="problem-card" style="margin: 5px;" shadow="hover" v-loading="loading">
             <div class="problem-content">
-              <h2>{{ problem.title }}</h2>
-              <el-tag :type="problem.grade === 'EASY' ? 'success' : problem.grade === 'GENERAL' ? 'warning' : 'danger'" 
-                     style="margin: 10px 0;">
-                {{ problem.grade === 'EASY' ? '简单' : problem.grade === 'GENERAL' ? '中等' : '困难' }}
-              </el-tag>
+              <div class="problem-header">
+                <h2 style="margin: 0; display: inline-block;">{{ problem.title }}</h2>
+                <el-tag :type="problem.grade === 'EASY' ? 'success' : problem.grade === 'GENERAL' ? 'warning' : 'danger'" 
+                       style="margin-left: 10px;">
+                  {{ problem.grade === 'EASY' ? '简单' : problem.grade === 'GENERAL' ? '中等' : '困难' }}
+                </el-tag>
+              </div>
               
               <div style="margin: 15px 0">
                 <h3 style="margin-bottom: 10px">题目内容</h3>
-                <div v-html="markedContent"></div>
+                <div class="markdown-body" v-html="markedContent"></div>
               </div>
               
               <!-- <div style="margin: 15px 0">
@@ -96,6 +101,8 @@
 <script>
 import * as monaco from 'monaco-editor'
 import { marked } from 'marked'
+import katex from 'katex'
+import 'github-markdown-css/github-markdown.css'
 import { debugCode } from '@/api/code'
 import { getStudentProblemDetail } from '@/api/problem'
 
@@ -173,13 +180,56 @@ export default {
     'problem.content': {
       handler(newVal) {
         if (newVal) {
-          this.markedContent = marked(newVal)
+          try {
+            this.markedContent = marked(newVal || '')
+          } catch (error) {
+            console.error('Markdown 渲染错误:', error)
+            this.markedContent = newVal
+          }
+        } else {
+          this.markedContent = ''
         }
       },
       immediate: true
     }
   },
   created() {
+    // 配置 marked 的数学公式渲染
+    const renderer = {
+      text(text) {
+        let result = text;
+        // 处理行内公式
+        result = result.replace(/\$([^$]+)\$/g, (_, formula) => {
+          try {
+            return katex.renderToString(formula, { displayMode: false });
+          } catch (err) {
+            console.error('KaTeX error:', err);
+            return formula;
+          }
+        });
+        // 处理块级公式
+        result = result.replace(/\$\$([^$]+)\$\$/g, (_, formula) => {
+          try {
+            return katex.renderToString(formula, { displayMode: true });
+          } catch (err) {
+            console.error('KaTeX error:', err);
+            return formula;
+          }
+        });
+        return result;
+      }
+    };
+
+    marked.use({ renderer });
+    
+    // 设置基本配置
+    marked.setOptions({
+      gfm: true,
+      breaks: true,
+      sanitize: false,
+      smartLists: true
+    });
+
     this.getProblemDetail()
   },
   mounted() {
@@ -273,23 +323,28 @@ export default {
 </script>
 
 <style>
-body {
-  background: #F0F0F0;
-  height: 100vh;
+html, body {
   margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .code {
   height: 100vh;
+  width: 100vw;
+  overflow: hidden;
 }
 
 .el-container {
   height: 100%;
+  width: 100%;
 }
 
 .problem-aside {
   height: calc(100vh - 60px);
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .problem-card {
@@ -302,31 +357,248 @@ body {
 .problem-card .el-card__body {
   height: 100%;
   overflow: hidden;
-  padding: 20px;
+  padding: 8px;
 }
 
 .problem-content {
   height: 100%;
   overflow-y: auto;
-  padding-right: 10px;
+  padding-right: 16px;
+  padding-left: 16px;
   text-align: left;
 }
 
+.problem-content p {
+  margin: 2px 0;
+  line-height: 1;
+}
+
+.problem-content h2 {
+  margin: 6px 0;
+  line-height: 1.2;
+}
+
+.problem-content h3 {
+  margin: 4px 0;
+  line-height: 1.2;
+}
+
+/* 右侧容器样式 */
+.el-main {
+  padding: 0;
+  overflow: hidden;
+}
+
+.el-footer {
+  padding: 0;
+}
+
+/* 数学公式样式 */
+.katex-display {
+  margin: 0.5em 0 !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.katex {
+  font-size: 1em !important;
+}
+
+.katex-display > .katex {
+  white-space: normal;
+}
+
+/* markdown 内容样式 */
+.problem-content div[v-html] {
+  line-height: 1;
+}
+
+.problem-content div[v-html] p {
+  margin: 2px 0;
+}
+
+.problem-content div[v-html] ul,
+.problem-content div[v-html] ol {
+  margin: 2px 0;
+  padding-left: 16px;
+}
+
+.problem-content div[v-html] li {
+  margin: 1px 0;
+  line-height: 1;
+}
+
+/* 滚动条样式 */
 .problem-content::-webkit-scrollbar {
   width: 6px;
+  background: transparent;
 }
 
 .problem-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
+  background: transparent;
 }
 
 .problem-content::-webkit-scrollbar-thumb {
-  background: #888;
+  background: transparent;
   border-radius: 3px;
+  transition: all 0.2s ease;
 }
 
-.problem-content::-webkit-scrollbar-thumb:hover {
-  background: #555;
+.problem-content:hover::-webkit-scrollbar-thumb {
+  background: #88888880;
+}
+
+.problem-content:hover::-webkit-scrollbar-thumb:hover {
+  background: #888;
+}
+
+/* 确保卡片内容不溢出 */
+.el-card {
+  overflow: hidden;
+}
+
+/* 编辑器设置样式 */
+.editor-settings {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 330px;
+}
+
+.editor-settings .el-select {
+  margin-left: 10px;
+}
+
+/* 修复菜单项样式 */
+.setting-menu-item {
+  background-color: transparent !important;
+  border-bottom: none !important;
+}
+
+.setting-menu-item:hover {
+  background-color: transparent !important;
+}
+
+.el-menu-item {
+  border-bottom: none !important;
+}
+
+/* 修复选择器样式 */
+.editor-settings .el-select .el-input__inner {
+  border: 1px solid #DCDFE6;
+}
+
+.editor-settings .el-select:hover .el-input__inner {
+  border-color: #409EFF;
+}
+
+/* 确保下拉菜单不会被截断 */
+.el-select-dropdown {
+  z-index: 3000 !important;
+}
+
+/* GitHub Markdown 样式覆盖 */
+.markdown-body {
+  font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji;
+  font-size: 14px;
+  line-height: 1.5;
+  word-wrap: break-word;
+  padding: 0 !important;
+  background-color: transparent !important;
+}
+
+.markdown-body pre {
+  background-color: #f6f8fa;
+  border-radius: 6px;
+  padding: 16px;
+  overflow: auto;
+}
+
+.markdown-body code {
+  background-color: rgba(175,184,193,0.2);
+  border-radius: 6px;
+  padding: 0.2em 0.4em;
+  font-size: 85%;
+}
+
+.markdown-body pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+.markdown-body table {
+  border-spacing: 0;
+  border-collapse: collapse;
+  margin: 16px 0;
+  width: 100%;
+}
+
+.markdown-body table th,
+.markdown-body table td {
+  padding: 6px 13px;
+  border: 1px solid #d0d7de;
+}
+
+.markdown-body table tr {
+  background-color: #ffffff;
+  border-top: 1px solid #d0d7de;
+}
+
+.markdown-body table tr:nth-child(2n) {
+  background-color: #f6f8fa;
+}
+
+.markdown-body blockquote {
+  padding: 0 1em;
+  color: #656d76;
+  border-left: 0.25em solid #d0d7de;
+  margin: 16px 0;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 2em;
+  margin: 16px 0;
+}
+
+.markdown-body li {
+  margin: 0.25em 0;
+}
+
+.markdown-body p {
+  margin: 16px 0;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  margin: 24px 0 16px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+/* 题目头部样式 */
+.problem-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.problem-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  padding: 0;
+}
+
+.problem-header .el-tag {
+  margin-left: 12px;
+  font-size: 13px;
+  height: 24px;
+  line-height: 24px;
+  padding: 0 8px;
 }
 </style>
