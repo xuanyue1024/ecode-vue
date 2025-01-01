@@ -74,24 +74,24 @@
             <div class="editor-settings">
               <el-select size="small" v-model="codeEditorSetting.theme" placeholder="主题" style="width: 100px; margin-right: 10px;"
                        @change="() => {this.monacoEditor.updateOptions({ theme: this.codeEditorSetting.theme })}">
-                <el-option value="vs-dark" label="vs-dark"></el-option>
-                <el-option value="hc-black" label="hc-black"></el-option>
-                <el-option value="vs" label="vs"></el-option>
-              </el-select>
+              <el-option value="vs-dark" label="vs-dark"></el-option>
+              <el-option value="hc-black" label="hc-black"></el-option>
+              <el-option value="vs" label="vs"></el-option>
+            </el-select>
               <el-select size="small" v-model="codeEditorSetting.language" placeholder="语言" style="width: 100px; margin-right: 10px;"
                        @change="() => {this.monacoEditor.updateOptions({ language: this.codeEditorSetting.language });this.monacoEditor.setValue($store.state.exampleCode.get(this.codeEditorSetting.language))}">
-                <el-option value="java" label="java"></el-option>
-                <el-option value="python3" label="python3"></el-option>
-                <el-option value="cpp" label="cpp"></el-option>
-              </el-select>
+              <el-option value="java" label="java"></el-option>
+              <el-option value="python3" label="python3"></el-option>
+              <el-option value="cpp" label="cpp"></el-option>
+            </el-select>
               <el-select size="small" v-model="codeEditorSetting.fontSize" placeholder="字体大小" style="width: 100px;"
                        @change="() => {this.monacoEditor.updateOptions({ fontSize: this.codeEditorSetting.fontSize })}">
-                <el-option value="12px" label="12px"></el-option>
-                <el-option value="14px" label="14px"></el-option>
-                <el-option value="16px" label="16px"></el-option>
-                <el-option value="18px" label="18px"></el-option>
-                <el-option value="20px" label="20px"></el-option>
-              </el-select>
+              <el-option value="12px" label="12px"></el-option>
+              <el-option value="14px" label="14px"></el-option>
+              <el-option value="16px" label="16px"></el-option>
+              <el-option value="18px" label="18px"></el-option>
+              <el-option value="20px" label="20px"></el-option>
+            </el-select>
             </div>
           </el-menu-item>
         </el-menu>
@@ -102,20 +102,20 @@
             <div class="problem-content">
               <div class="problem-header">
                 <h2 style="margin: 0; display: inline-block;">{{ problem.title }}</h2>
-                <el-tag :type="problem.grade === 'EASY' ? 'success' : problem.grade === 'GENERAL' ? 'warning' : 'danger'" 
+            <el-tag :type="problem.grade === 'EASY' ? 'success' : problem.grade === 'GENERAL' ? 'warning' : 'danger'" 
                        style="margin-left: 10px;">
-                  {{ problem.grade === 'EASY' ? '简单' : problem.grade === 'GENERAL' ? '中等' : '困难' }}
-                </el-tag>
+              {{ problem.grade === 'EASY' ? '简单' : problem.grade === 'GENERAL' ? '中等' : '困难' }}
+            </el-tag>
               </div>
-              
-              <div style="margin: 15px 0">
-                <h3 style="margin-bottom: 10px">题目内容</h3>
+            
+            <div style="margin: 15px 0">
+              <h3 style="margin-bottom: 10px">题目内容</h3>
                 <div class="markdown-body" v-html="markedContent"></div>
-              </div>
-              
+            </div>
+            
               <!-- <div style="margin: 15px 0">
-                <h3 style="margin-bottom: 10px">题目要求</h3>
-                <p>{{ problem.require }}</p>
+              <h3 style="margin-bottom: 10px">题目要求</h3>
+              <p>{{ problem.require }}</p>
               </div> -->
             </div>
           </el-card>
@@ -130,10 +130,10 @@
           <el-footer style="height: 27vh;text-align:left;margin: 5px;padding: 0px;">
             <el-card shadow="hover" style="width: 100%;height: 100%;" body-style="padding: 10px;">
               <div>
-                <el-button type="text">测试结果</el-button>
-                <el-button type="text" disabled>自测结果</el-button>
+                <el-button type="text" :class="{ active: activeTab === 'test' }" @click="activeTab = 'test'">测试结果</el-button>
+                <el-button type="text" :class="{ active: activeTab === 'debug' }" @click="activeTab = 'debug'">自测结果</el-button>
               </div>
-              <div>
+              <div v-if="activeTab === 'debug'">
                 <el-row :gutter="40">
                   <el-col :span="12">
                     <div>自测输入值</div>
@@ -149,17 +149,52 @@
                   </el-col>
                 </el-row>
               </div>
+              <div v-else>
+                <el-row style="margin-bottom: 10px">
+                  <el-col :span="12">
+                    <div>通过测试: {{ testResult.passCount }}/4</div>
+                    <div>得分: {{ testResult.score }}/4</div>
+                  </el-col>
+                  <el-col :span="12" style="text-align: right">
+                    <el-button type="text" @click="showDiffDialog(testResult.diff)" v-if="testResult.diff && testResult.diff.length">
+                      查看详细对比
+                    </el-button>
+                  </el-col>
+                </el-row>
+                <div v-for="(diff, index) in testResult.diff" :key="index" class="diff-item">
+                  <div class="diff-header">
+                    测试用例 #{{ index + 1 }}
+                  </div>
+                  <pre class="diff-content">{{ diff }}</pre>
+                </div>
+              </div>
               <div style="text-align:right;margin-top: 10px;">
                 <el-button type="primary" @click="debugBtn()" :loading="isDebugLoad" :disabled="isDebugDisabled" plain>
                   调试
                 </el-button>
-                <el-button type="primary">提交</el-button>
+                <el-button type="primary" @click="submitCode()" :loading="isSubmitLoad" :disabled="isSubmitDisabled">
+                  提交
+                </el-button>
               </div>
             </el-card>
           </el-footer>
         </el-container>
       </el-container>
     </el-container>
+
+    <!-- 添加差异对比弹窗 -->
+    <el-dialog
+      title="详细对比结果"
+      :visible.sync="diffDialogVisible"
+      width="90%"
+      :before-close="handleCloseDiffDialog">
+      <div class="test-cases-container">
+        <div v-for="(diff, index) in currentDiffs" :key="index" class="test-case-diff">
+          <div class="test-case-header">测试用例 #{{ index + 1 }}</div>
+          <div :ref="'diffContainer' + index" class="diff-container"></div>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -169,9 +204,11 @@ import { marked } from 'marked'
 import katex from 'katex'
 import 'github-markdown-css/github-markdown.css'
 import { debugCode } from '@/api/code'
-import { getStudentProblemDetail } from '@/api/problem'
+import { getStudentProblemDetail, runCode } from '@/api/problem'
 import VueDraggableResizable from 'vue-draggable-resizable-gorkys'
 import 'vue-draggable-resizable-gorkys/dist/VueDraggableResizable.css'
+import { Diff2HtmlUI } from 'diff2html/lib/ui/js/diff2html-ui'
+import 'diff2html/bundles/css/diff2html.min.css'
 
 export default {
   name: 'AcMonaco',
@@ -243,6 +280,23 @@ export default {
       messages: [],
       inputMessage: '',
       chatLoading: false,
+      activeTab: 'debug', // 当前激活的标签页
+      testResult: {
+        passCount: 0,
+        score: 0,
+        diff: []
+      },
+      codeRunForm: { // 提交代码表单
+        code: '',
+        type: '',
+        problemId: 0,
+        classId: 0,
+        classProblemId: 0
+      },
+      isSubmitLoad: false, // 提交按钮加载状态
+      isSubmitDisabled: false, // 提交按钮禁用状态
+      diffDialogVisible: false,
+      currentDiffs: [],
     }
   },
   watch: {
@@ -601,6 +655,110 @@ export default {
       this.$nextTick(() => {
         this.scrollToBottom()
       })
+    },
+    // 提交代码
+    submitCode() {
+      console.log('开始提交代码')
+      this.isSubmitLoad = true
+      this.isSubmitDisabled = true
+      
+      const formData = {
+        code: this.getVal(),
+        type: this.codeEditorSetting.language,
+        problemId: parseInt(this.$route.query.problemId),
+        classId: parseInt(this.$route.query.classId || 0),
+        classProblemId: parseInt(this.$route.query.classProblemId || 0)
+      }
+
+      console.log('提交的数据:', formData)
+
+      runCode(formData)
+        .then(res => {
+          console.log('收到响应:', res)
+          if (res.data.code === 200) {
+            this.testResult = {
+              passCount: res.data.data.passCount || 0,
+              score: res.data.data.score || 0,
+              diff: res.data.data.diff || []
+            }
+            
+            this.activeTab = 'test'
+            
+            if (this.testResult.passCount === 4) {
+              this.$notify({
+                title: '成功',
+                message: '恭喜！所有测试用例通过',
+                type: 'success'
+              })
+            } else {
+              this.$notify({
+                title: '提示',
+                message: `通过 ${this.testResult.passCount}/4 个测试用例`,
+                type: 'warning'
+              })
+            }
+          } else {
+            this.$notify.error({
+              title: '提交失败',
+              message: res.data.msg || '代码提交失败'
+            })
+          }
+        })
+        .catch(error => {
+          console.error('提交代码错误:', error)
+          this.$notify.error({
+            title: '提交失败',
+            message: '代码提交失败'
+          })
+        })
+        .finally(() => {
+          this.isSubmitLoad = false
+          this.isSubmitDisabled = false
+        })
+    },
+    // 显示差异对比弹窗
+    showDiffDialog(diffs) {
+      this.currentDiffs = [...diffs] // 创建数组的副本
+      this.diffDialogVisible = true
+      this.$nextTick(() => {
+        this.currentDiffs.forEach((diff, index) => {
+          this.renderDiff2Html(diff, index)
+        })
+      })
+    },
+    
+    // 渲染差异对比
+    renderDiff2Html(diff, index) {
+      const configuration = {
+        drawFileList: false,
+        matching: 'lines',
+        highlight: true,
+        outputFormat: 'side-by-side',
+        renderNothingWhenEmpty: false,
+        colorScheme: 'light',
+        lineNumbers: false,  // 禁用行号
+        matchWordsThreshold: 0.25,
+        matchingMaxComparisons: 2500,
+        maxLineSizeInBlockForComparison: 200,
+        maxLineLengthHighlight: 10000,
+        diffStyle: 'word'  // 使用单词级别的差异对比
+      }
+      
+      // 获取对应的容器
+      const container = this.$refs['diffContainer' + index][0]
+      // 清空容器
+      container.innerHTML = ''
+      
+      // 创建新的差异渲染实例
+      const diffHtml = new Diff2HtmlUI(container, diff, configuration)
+      diffHtml.draw()
+      diffHtml.highlightCode()
+    },
+    
+    // 关闭差异对比弹窗
+    handleCloseDiffDialog() {
+      this.diffDialogVisible = false
+      this.currentDiffs = []
     }
   }
 }
@@ -1258,5 +1416,267 @@ html, body {
 
 .chat-message .message-content.markdown-body > *:last-child {
   margin-bottom: 0 !important;
+}
+
+/* 测试结果样式 */
+.active {
+  color: #409EFF !important;
+  border-bottom: 2px solid #409EFF !important;
+}
+
+.diff-item {
+  margin-bottom: 12px;
+  border: 1px solid #EBEEF5;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.diff-header {
+  padding: 8px 12px;
+  background-color: #F5F7FA;
+  border-bottom: 1px solid #EBEEF5;
+  font-weight: 500;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.diff-content {
+  margin: 0;
+  padding: 12px;
+  background-color: #FAFAFA;
+  font-family: Consolas, Monaco, 'Andale Mono', monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* 差异格式的颜色 */
+.diff-content .added {
+  background-color: #E6FFE6;
+  color: #28A745;
+}
+
+.diff-content .removed {
+  background-color: #FFE6E6;
+  color: #DC3545;
+}
+
+/* 差异对比弹窗样式 */
+.diff-container {
+  padding: 20px;
+  background: #fff;
+  border-radius: 4px;
+}
+
+.d2h-wrapper {
+  margin: 0;
+}
+
+.d2h-file-header {
+  display: none;
+}
+
+.d2h-file-diff {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin: 0;
+}
+
+.d2h-code-line {
+  padding: 4px 8px;
+}
+
+.d2h-code-side-line {
+  padding: 4px 8px;
+}
+
+.d2h-code-line-prefix {
+  display: inline-block;
+  width: 20px;
+  padding-right: 8px;
+}
+
+.d2h-added {
+  background-color: #E6FFE6;
+}
+
+.d2h-deleted {
+  background-color: #FFE6E6;
+}
+
+.d2h-code-side-linenumber {
+  color: #999;
+  padding: 0 8px;
+}
+
+/* 测试用例容器样式 */
+.test-cases-container {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 20px;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.test-case-diff {
+  margin-bottom: 30px;
+  width: 100%;
+}
+
+.test-case-diff:last-child {
+  margin-bottom: 0;
+}
+
+.test-case-header {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+/* 差异对比容器样式 */
+.diff-container {
+  background: #fff;
+  border-radius: 4px;
+  font-family: Consolas, Monaco, 'Andale Mono', monospace;
+  border: 1px solid #eee;
+  width: 100%;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* 调整测试结果顶部按钮的样式 */
+.el-button.el-button--text {
+  padding: 0;
+  font-size: 14px;
+}
+
+.el-button.el-button--text:hover {
+  color: #66b1ff;
+}
+
+/* 调整测试用例标题的样式 */
+.diff-header {
+  padding: 8px 12px;
+  background-color: #F5F7FA;
+  border-bottom: 1px solid #EBEEF5;
+  font-weight: 500;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+/* 隐藏多余的行号和空白区域 */
+.d2h-file-side-diff {
+  display: flex !important;
+  flex: 1 !important;
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+.d2h-code-side-line {
+  display: flex !important;
+  flex: 1 !important;
+  width: 100% !important;
+  background-color: inherit !important;
+  overflow: hidden !important;
+}
+
+.d2h-code-line-ctn {
+  flex: 1 !important;
+  width: 100% !important;
+  background-color: inherit !important;
+  word-break: break-all;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.d2h-code-side-emptyplaceholder,
+.d2h-emptyplaceholder {
+  display: none !important;
+}
+
+.d2h-del {
+  background-color: #FFE6E6 !important;
+  width: 100% !important;
+}
+
+.d2h-ins {
+  background-color: #E6FFE6 !important;
+  width: 100% !important;
+}
+
+.d2h-code-side-linenumber,
+.d2h-code-line-prefix {
+  display: none !important;
+}
+
+.d2h-file-wrapper {
+  border: none !important;
+  margin-bottom: 0 !important;
+  overflow: hidden !important;
+}
+
+.d2h-file-diff {
+  border: 1px solid #eee !important;
+  border-radius: 4px !important;
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+.d2h-diff-table {
+  width: 100%;
+  table-layout: fixed;
+  margin: 0;
+}
+
+.d2h-diff-tbody {
+  width: 100%;
+}
+
+.d2h-diff-tbody > tr > td {
+  width: 50%;
+  padding: 0;
+  word-break: break-all;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.d2h-code-line {
+  width: 100%;
+  background-color: inherit;
+}
+
+/* 确保弹窗内容不会溢出 */
+.el-dialog {
+  margin: 0 auto !important;
+  max-width: 1400px;
+}
+
+.el-dialog__body {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* 调整差异内容的显示 */
+.d2h-file-side-diff {
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+.d2h-code-side-line {
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+.d2h-file-wrapper {
+  overflow: hidden !important;
+}
+
+.d2h-file-diff {
+  overflow: hidden !important;
 }
 </style>
