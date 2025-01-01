@@ -70,6 +70,15 @@
         <div class="form-section">
           <h4 class="section-title">题目详情</h4>
           <el-form-item label="题目描述" prop="content">
+            <div class="content-header">
+              <el-button 
+                type="primary" 
+                size="small" 
+                icon="el-icon-magic-stick"
+                @click="showGenerateDialog"
+                :loading="generating"
+              >AI 生成题目</el-button>
+            </div>
             <mavon-editor
               v-model="form.content"
               @change="handleContentChange"
@@ -173,6 +182,29 @@
         <el-button type="primary" @click="handleAddTag" :loading="addingTag">确 定</el-button>
       </span>
     </el-dialog>
+
+    <!-- AI 生成对话框 -->
+    <el-dialog
+      title="AI 生成题目"
+      :visible.sync="generateDialogVisible"
+      width="50%"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false">
+      <el-form>
+        <el-form-item label="生成要求">
+          <el-input
+            type="textarea"
+            v-model="generatePrompt"
+            :rows="4"
+            placeholder="请输入题目生成要求，例如：生成一道关于二叉树遍历的中等难度题目"
+          ></el-input>
+        </el-form-item>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="generateDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="generateProblem">生 成</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
@@ -264,6 +296,9 @@ export default {
         subfield: true, // 单双栏模式
         preview: true, // 预览
       },
+      generateDialogVisible: false,
+      generatePrompt: '',
+      generating: false,
     }
   },
   computed: {
@@ -397,7 +432,97 @@ export default {
     // 处理 markdown 内容变化
     handleContentChange(value, render) {
       this.form.content = value
-    }
+    },
+
+    // 显示生成对话框
+    showGenerateDialog() {
+      this.generateDialogVisible = true
+      this.generatePrompt = ''
+    },
+
+    // 生成题目
+    async generateProblem() {
+      if (!this.generatePrompt.trim()) {
+        this.$message.warning('请输入生成要求')
+        return
+      }
+
+      this.generating = true
+      this.generateDialogVisible = false // 立即关闭对话框
+      const token = window.localStorage.getItem('token') || window.sessionStorage.getItem('token')
+
+      try {
+        const response = await fetch('/api/user/ai/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            aiAction: 'NEXT',
+            content: 'problem_generate' + this.generatePrompt,
+            token: token
+          })
+        })
+
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder('utf-8')
+        let buffer = ''
+        this.form.content = '' // 清空现有内容
+
+        let isReading = true
+        while (isReading) {
+          const { done, value } = await reader.read()
+          if (done) {
+            isReading = false
+            break
+          }
+
+          const chunk = decoder.decode(value, { stream: true })
+          buffer += chunk
+          
+          const lines = buffer.split('\n')
+          buffer = lines.pop() || ''
+          
+          for (const line of lines) {
+            if (line.startsWith('data:')) {
+              try {
+                const jsonData = JSON.parse(line.slice(5))
+                if (jsonData.code === 200 && jsonData.data !== null) {
+                  this.form.content += jsonData.data
+                }
+              } catch (error) {
+                console.error('Error parsing message:', error)
+              }
+            }
+          }
+        }
+
+        if (buffer.length > 0) {
+          const lines = buffer.split('\n')
+          for (const line of lines) {
+            if (line.startsWith('data:')) {
+              try {
+                const jsonData = JSON.parse(line.slice(5))
+                if (jsonData.code === 200 && jsonData.data !== null) {
+                  this.form.content += jsonData.data
+                }
+              } catch (error) {
+                console.error('Error parsing message:', error)
+              }
+            }
+          }
+        }
+
+        decoder.decode()
+        this.$message.success('题目生成完成')
+
+      } catch (error) {
+        console.error('Error:', error)
+        this.$message.error('生成题目失败')
+      } finally {
+        this.generating = false
+      }
+    },
   }
 }
 </script>
@@ -630,5 +755,15 @@ export default {
 
 :deep(.op-icon.selected) {
   background: none !important;
+}
+
+.content-header {
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+:deep(.el-dialog__body) {
+  padding: 20px;
 }
 </style> 
