@@ -3,10 +3,10 @@
     <div class="page-header">
       <div class="header-left">
         <el-button icon="el-icon-back" @click="handleBack">返回</el-button>
-        <h2>{{ form.id ? '编辑题目' : '新增题目' }}</h2>
+        <h2>{{ pageTitle }}</h2>
       </div>
       <div class="header-right">
-        <el-button type="primary" @click="handleSubmit" :loading="submitting">{{ form.id ? '保存修改' : '创建题目' }}</el-button>
+        <el-button type="primary" @click="handleSubmit" :loading="loading">{{ pageTitle }}</el-button>
       </div>
     </div>
 
@@ -37,11 +37,11 @@
             </el-select>
             <div class="form-tip">根据题目的复杂度和解题所需时间来选择合适的难度等级</div>
           </el-form-item>
-          <el-form-item label="题目标签" prop="tags">
+          <el-form-item label="题目标签" prop="tagIds">
             <div class="tags-container">
               <div class="tag-input">
                 <el-select
-                  v-model="selectedTags"
+                  v-model="form.tagIds"
                   multiple
                   filterable
                   remote
@@ -175,14 +175,14 @@
 </template>
 
 <script>
-import { addProblem, updateProblem, setProblemTags } from '@/api/problem'
+import { addProblem, updateProblem, setProblemTags, getProblemDetail } from '@/api/problem'
 import { searchTags, addTag, getTagsByIds } from '@/api/tag'
 
 export default {
   name: 'AddProblem',
   data() {
     return {
-      // 表单数据
+      loading: false,
       form: {
         title: '',
         grade: 'EASY',
@@ -190,6 +190,7 @@ export default {
         require: '',
         maxTime: 5,
         maxMemory: 512,
+        tagIds: [],
         inputTest1: '',
         outputTest1: '',
         inputTest2: '',
@@ -199,37 +200,9 @@ export default {
         inputTest4: '',
         outputTest4: ''
       },
-      
       // 标签相关
-      selectedTags: [],
       tagOptions: [],
       tagsLoading: false,
-      
-      // 表单验证规则
-      rules: {
-        title: [
-          { required: true, message: '请输入题目标题', trigger: 'blur' },
-          { min: 2, max: 50, message: '标题长度应在 2 到 50 个字符之间', trigger: 'blur' }
-        ],
-        grade: [
-          { required: true, message: '请选择题目难度', trigger: 'change' }
-        ],
-        content: [
-          { required: true, message: '请输入题目描述', trigger: 'blur' },
-          { min: 10, message: '题目描述不能少于 10 个字符', trigger: 'blur' }
-        ],
-        maxTime: [
-          { required: true, message: '请设置最大运行时间', trigger: 'blur' }
-        ],
-        maxMemory: [
-          { required: true, message: '请设置最大内存限制', trigger: 'blur' }
-        ]
-      },
-      
-      // 提交状态
-      submitting: false,
-      
-      // 新建标签相关
       tagDialogVisible: false,
       tagForm: {
         name: ''
@@ -240,39 +213,74 @@ export default {
           { min: 1, max: 20, message: '长度在 1 到 20 个字符', trigger: 'blur' }
         ]
       },
-      addingTag: false
+      addingTag: false,
+      rules: {
+        title: [
+          { required: true, message: '请输入题目标题', trigger: 'blur' },
+          { min: 2, max: 50, message: '标题长度应在 2 到 50 个字符之间', trigger: 'blur' }
+        ],
+        content: [
+          { required: true, message: '请输入题目描述', trigger: 'blur' }
+        ],
+        require: [
+          { required: true, message: '请输入解题要求', trigger: 'blur' }
+        ]
+      }
     }
   },
   computed: {
-    // 计算选中的标签ID列表
-    selectedTagIds() {
-      return this.selectedTags.map(tag => tag.id).filter(id => id)
+    isEdit() {
+      return this.$route.params.id !== undefined
+    },
+    pageTitle() {
+      return this.isEdit ? '编辑题目' : '新增题目'
     }
   },
   created() {
-    // 如果是编辑模式，获取题目数据
-    const id = this.$route.params.id
-    if (id) {
-      this.loadProblemData(id)
+    if (this.isEdit) {
+      this.getProblemDetail()
     }
   },
   methods: {
-    // 加载题目数据
-    async loadProblemData(id) {
+    // 获取题目详情
+    async getProblemDetail() {
+      this.loading = true
       try {
-        const res = await this.$http.get(`/api/teacher/problem/${id}`)
+        const res = await getProblemDetail(this.$route.params.id)
         if (res.data.code === 200) {
-          this.form = res.data.data
-          if (this.form.tagIds && this.form.tagIds.length > 0) {
+          const data = res.data.data
+          this.form = {
+            id: data.id,
+            title: data.title,
+            grade: data.grade,
+            content: data.content,
+            require: data.require,
+            maxTime: data.maxTime,
+            maxMemory: data.maxMemory,
+            tagIds: data.tagIds || [],
+            inputTest1: data.inputTest1 || '',
+            outputTest1: data.outputTest1 || '',
+            inputTest2: data.inputTest2 || '',
+            outputTest2: data.outputTest2 || '',
+            inputTest3: data.inputTest3 || '',
+            outputTest3: data.outputTest3 || '',
+            inputTest4: data.inputTest4 || '',
+            outputTest4: data.outputTest4 || ''
+          }
+          
+          // 如果有标签ID，获取标签详情
+          if (this.form.tagIds.length > 0) {
             const tagRes = await getTagsByIds(this.form.tagIds)
             if (tagRes.data.code === 200) {
-              this.selectedTags = tagRes.data.data
+              this.tagOptions = tagRes.data.data
             }
           }
         }
       } catch (error) {
-        console.error('获取题目数据失败:', error)
-        this.$message.error('获取题目数据失败')
+        console.error('获取题目详情失败:', error)
+        this.$message.error('获取题目详情失败')
+      } finally {
+        this.loading = false
       }
     },
 
@@ -283,71 +291,32 @@ export default {
 
     // 提交表单
     async handleSubmit() {
-      this.$refs.form.validate(async (valid) => {
+      this.$refs.form.validate(async valid => {
         if (valid) {
-          this.submitting = true
           try {
-            const data = { ...this.form }
-            let res
-            if (this.form.id) {
-              // 更新题目
-              res = await updateProblem(data)
-              if (res.data.code === 200) {
-                // 更新标签
-                if (this.selectedTagIds.length > 0) {
-                  const tagRes = await setProblemTags({
-                    problemId: this.form.id,
-                    tagIds: this.selectedTagIds
-                  })
-                  if (tagRes.data.code === 200) {
-                    this.$message.success('更新成功')
-                    this.handleBack()
-                  }
-                } else {
-                  this.$message.success('更新成功')
-                  this.handleBack()
-                }
-              }
-            } else {
-              // 新增题目
-              res = await addProblem(data)
-              if (res.data.code === 200) {
-                const problemId = res.data.data
-                // 设置标签
-                if (this.selectedTagIds.length > 0) {
-                  const tagRes = await setProblemTags({
-                    problemId: problemId,
-                    tagIds: this.selectedTagIds
-                  })
-                  if (tagRes.data.code === 200) {
-                    this.$message.success('新增成功')
-                    this.handleBack()
-                  }
-                } else {
-                  this.$message.success('新增成功')
-                  this.handleBack()
-                }
-              }
+            const res = this.isEdit
+              ? await updateProblem(this.form)
+              : await addProblem(this.form)
+
+            if (res.data.code === 200) {
+              this.$message.success(this.isEdit ? '修改成功' : '新增成功')
+              this.handleBack()
             }
           } catch (error) {
             console.error('保存题目失败:', error)
-            this.$message.error('保存题目失败')
-          } finally {
-            this.submitting = false
+            this.$message.error('保存失败')
           }
         }
       })
     },
 
-    // 处理标签选择框显示状态变化
+    // 标签相关方法
     handleSelectVisible(visible) {
       if (!visible) {
-        // 当选择框关闭时，清空搜索结果
         this.tagOptions = []
       }
     },
 
-    // 处理标签变化
     async handleTagChange(values) {
       // 找出新添加的标签（字符串值）
       const newTagValue = values.find(value => typeof value === 'string')
@@ -356,33 +325,19 @@ export default {
           const res = await addTag(newTagValue)
           if (res.data.code === 200) {
             const newTagId = res.data.data
-            // 创建新标签对象
-            const newTag = {
-              id: newTagId,
-              name: newTagValue
-            }
-            // 更新选中的标签列表，移除临时字符串值并添加新标签
-            this.selectedTags = [
-              ...values.filter(v => typeof v !== 'string'),
-              newTag
-            ]
-            // 更新标签选项列表
-            this.tagOptions = [
-              ...this.tagOptions.filter(t => t.id !== newTagId),
-              newTag
-            ]
+            // 更新标签列表
+            this.tagOptions = [...this.tagOptions, { id: newTagId, name: newTagValue }]
+            // 更新选中的标签ID
+            this.form.tagIds = [...this.form.tagIds, newTagId]
             this.$message.success('创建标签成功')
           }
         } catch (error) {
           console.error('创建标签失败:', error)
           this.$message.error('创建标签失败')
-          // 移除失败的标签
-          this.selectedTags = values.filter(v => typeof v !== 'string')
         }
       }
     },
 
-    // 标签相关方法
     async remoteSearchTags(query) {
       if (query) {
         this.tagsLoading = true
@@ -399,39 +354,6 @@ export default {
       } else {
         this.tagOptions = []
       }
-    },
-
-    handleRemoveTag(tag) {
-      this.selectedTagIds = this.selectedTagIds.filter(id => id !== tag.id)
-    },
-
-    showTagInput() {
-      this.tagDialogVisible = true
-      this.tagForm.name = ''
-    },
-
-    // 添加新标签
-    async handleAddTag() {
-      this.$refs.tagForm.validate(async (valid) => {
-        if (valid) {
-          this.addingTag = true
-          try {
-            const res = await addTag(this.tagForm.name)
-            if (res.data.code === 200) {
-              this.$message.success('添加标签成功')
-              // 刷新标签列表
-              await this.remoteSearchTags(this.tagForm.name)
-              // 关闭对话框
-              this.tagDialogVisible = false
-            }
-          } catch (error) {
-            console.error('添加标签失败:', error)
-            this.$message.error('添加标签失败')
-          } finally {
-            this.addingTag = false
-          }
-        }
-      })
     }
   }
 }

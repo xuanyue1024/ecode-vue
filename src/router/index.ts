@@ -29,13 +29,13 @@ const router = new VueRouter({
           component: () => import('../views/main/teacher/problemManage.vue')
         },
         {
-          path: '/problemManage/add',
-          name: 'addProblem',
+          path: 'problemManage/add',
+          name: 'AddProblem',
           component: () => import('../views/main/teacher/addProblem.vue')
         },
         {
-          path: '/problemManage/edit/:id',
-          name: 'editProblem',
+          path: 'problemManage/edit/:id',
+          name: 'EditProblem',
           component: () => import('../views/main/teacher/addProblem.vue')
         },
         //学生：我的班级

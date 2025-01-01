@@ -81,4 +81,9 @@ interface RunCodeDTO {
 }
 
 export const runCode = (data: RunCodeDTO) =>
-  postRequest('/api/user/code/run', data) 
+  postRequest('/api/user/code/run', data)
+
+// 获取题目详情
+export const getProblemDetail = (id: number) => {
+  return getRequest(`/api/teacher/problem/${id}`)
+} 
