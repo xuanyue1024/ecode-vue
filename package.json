@@ -16,6 +16,7 @@
     "katex": "^0.16.9",
     "marked": "^4.3.0",
     "marked-katex-extension": "^1.0.2",
+    "mavon-editor": "^2.10.4",
     "md5": "^2.3.0",
     "monaco-editor": "^0.52.0",
     "vue": "^2.6.14",
