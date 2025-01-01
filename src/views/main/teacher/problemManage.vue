@@ -1,62 +1,97 @@
 <template>
   <div class="problem-manage">
-    <!-- 搜索栏 -->
-    <div class="search-bar">
-      <el-form :inline="true" :model="searchForm">
-        <el-form-item>
-          <el-input v-model="searchForm.name" placeholder="请输入题目名称" clearable></el-input>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">搜索</el-button>
-          <el-button @click="resetSearch">重置</el-button>
-          <el-button type="primary" @click="handleAdd">新增题目</el-button>
-        </el-form-item>
-      </el-form>
+    <div class="page-header">
+      <div class="header-left">
+        <h2>题目管理</h2>
+      </div>
+      <div class="header-right">
+        <el-button 
+          type="danger" 
+          icon="el-icon-delete"
+          :disabled="!selectedProblems.length"
+          @click="handleBatchDelete">
+          批量删除
+        </el-button>
+        <el-button 
+          type="primary" 
+          icon="el-icon-plus"
+          @click="$router.push('/problemManage/add')">
+          新增题目
+        </el-button>
+      </div>
     </div>
 
-    <!-- 题目列表 -->
-    <el-table :data="problemList" v-loading="loading" border>
-      <el-table-column prop="title" label="题目标题"></el-table-column>
-      <el-table-column prop="grade" label="难度">
-        <template slot-scope="scope">
-          <el-tag :type="scope.row.grade === 'EASY' ? 'success' : scope.row.grade === 'GENERAL' ? 'warning' : 'danger'">
-            {{ scope.row.grade === 'EASY' ? '简单' : scope.row.grade === 'GENERAL' ? '中等' : '困难' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="标签" width="200">
-        <template slot-scope="scope">
-          <el-tag v-for="tag in scope.row.tags" :key="tag.id" size="small" style="margin-right: 5px">
-            {{ tag.name }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="createTime" label="创建时间" width="180"></el-table-column>
-      <el-table-column label="操作" width="200">
-        <template slot-scope="scope">
-          <el-button type="text" @click="handleEdit(scope.row)">编辑</el-button>
-          <el-button type="text" @click="handleDelete(scope.row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="content-wrapper">
+      <div class="search-bar">
+        <el-form :inline="true" :model="searchForm">
+          <el-form-item>
+            <el-input 
+              v-model="searchForm.name" 
+              placeholder="请输入题目名称" 
+              clearable
+              @keyup.enter.native="handleSearch">
+            </el-input>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" icon="el-icon-search" @click="handleSearch">搜索</el-button>
+            <el-button icon="el-icon-refresh" @click="resetSearch">重置</el-button>
+          </el-form-item>
+        </el-form>
+      </div>
 
-    <!-- 分页 -->
-    <div class="pagination">
-      <el-pagination
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-        :current-page="searchForm.pageNo"
-        :page-sizes="[10, 20, 30, 50]"
-        :page-size="searchForm.pageSize"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="total">
-      </el-pagination>
+      <!-- 题目列表 -->
+      <el-table 
+        :data="problemList" 
+        v-loading="loading" 
+        border 
+        @selection-change="handleSelectionChange"
+        style="width: 100%">
+        <el-table-column
+          type="selection"
+          width="55">
+        </el-table-column>
+        <el-table-column prop="title" label="题目标题"></el-table-column>
+        <el-table-column prop="grade" label="难度">
+          <template slot-scope="scope">
+            <el-tag :type="scope.row.grade === 'EASY' ? 'success' : scope.row.grade === 'GENERAL' ? 'warning' : 'danger'">
+              {{ scope.row.grade === 'EASY' ? '简单' : scope.row.grade === 'GENERAL' ? '中等' : '困难' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="标签" width="200">
+          <template slot-scope="scope">
+            <el-tag v-for="tag in scope.row.tags" :key="tag.id" size="small" style="margin-right: 5px">
+              {{ tag.name }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="创建时间" width="180"></el-table-column>
+        <el-table-column label="操作" width="200">
+          <template slot-scope="scope">
+            <el-button type="text" @click="handleEdit(scope.row)">编辑</el-button>
+            <el-button type="text" @click="handleDelete(scope.row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- 分页 -->
+      <div class="pagination">
+        <el-pagination
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+          :current-page="searchForm.pageNo"
+          :page-sizes="[10, 20, 30, 50]"
+          :page-size="searchForm.pageSize"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total">
+        </el-pagination>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import { getProblemPage, addProblem, updateProblem, deleteProblems, setProblemTags } from '@/api/problem'
+import { getProblemPage, addProblem, updateProblem, deleteProblem, deleteProblems, setProblemTags } from '@/api/problem'
 import { searchTags, addTag, getTagsByIds } from '@/api/tag'
 
 export default {
@@ -127,7 +162,8 @@ export default {
       },
       
       // 添加提交状态
-      submitting: false
+      submitting: false,
+      selectedProblems: [], // 选中的题目列表
     }
   },
   created() {
@@ -210,7 +246,7 @@ export default {
         type: 'warning'
       }).then(async () => {
         try {
-          const res = await deleteProblems([row.id])
+          const res = await deleteProblem(row.id)
           if (res.data.code === 200) {
             this.$message.success('删除成功')
             this.getProblemList()
@@ -219,6 +255,9 @@ export default {
           console.error('删除题目失败:', error)
           this.$message.error('删除题目失败')
         }
+      }).catch(() => {
+        // 用户取消删除操作
+        this.$message.info('已取消删除')
       })
     },
     
@@ -337,156 +376,120 @@ export default {
       }
       this.selectedTags = []
       this.selectedTagIds = []
-    }
+    },
+
+    // 处理多选变化
+    handleSelectionChange(val) {
+      this.selectedProblems = val
+    },
+
+    // 批量删除
+    async handleBatchDelete() {
+      if (!this.selectedProblems.length) return
+
+      try {
+        await this.$confirm('确定要删除选中的题目吗？此操作不可恢复', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        })
+
+        const ids = this.selectedProblems.map(item => item.id)
+        const res = await deleteProblems(ids)
+
+        if (res.data.code === 200) {
+          this.$message.success('删除成功')
+          // 刷新列表
+          this.getProblemList()
+          // 清空选中状态
+          this.selectedProblems = []
+        }
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error('删除题目失败:', error)
+          this.$message.error('删除题目失败')
+        }
+      }
+    },
   }
 }
 </script>
 
 <style scoped>
 .problem-manage {
+  height: 100%;
   padding: 20px;
+  background-color: #f5f7fa;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+.header-left h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.header-right {
+  display: flex;
+  gap: 10px;
+}
+
+.content-wrapper {
+  flex: 1;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .search-bar {
-  margin-bottom: 20px;
-  background-color: #fff;
   padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+  border-bottom: 1px solid #ebeef5;
 }
 
-.add-form {
-  background-color: #fff;
-  padding: 30px;
-  margin-bottom: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+.search-bar :deep(.el-form-item) {
+  margin-bottom: 0;
 }
 
-.form-header {
-  margin-bottom: 30px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 15px;
+.search-bar :deep(.el-input) {
+  width: 240px;
 }
 
-.form-header h3 {
-  margin: 0;
-  color: #303133;
-  font-size: 20px;
+/* 表格样式 */
+:deep(.el-table) {
+  flex: 1;
+  overflow: auto;
 }
 
-.form-desc {
-  margin: 10px 0 0;
-  color: #909399;
-  font-size: 14px;
+:deep(.el-table th) {
+  background-color: #f5f7fa;
+  font-weight: 600;
 }
 
-.form-section {
-  margin-bottom: 30px;
+/* 标签样式 */
+:deep(.el-tag) {
+  margin-right: 5px;
+}
+
+/* 分页样式 */
+.pagination {
   padding: 20px;
-  background-color: #f8f9fa;
-  border-radius: 6px;
-}
-
-.section-title {
-  margin: 0 0 20px;
-  color: #303133;
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.form-tip {
-  margin-top: 5px;
-  color: #909399;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.tags-container {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.selected-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.tag-input {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.tag-item {
-  margin: 0;
-}
-
-.test-cases {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.test-case-item {
-  padding: 15px;
-  background-color: #fff;
-  border-radius: 4px;
-  border: 1px solid #e4e7ed;
-}
-
-.test-case-header {
-  margin-bottom: 15px;
-  color: #303133;
-  font-weight: 500;
-}
-
-.unit-label {
-  margin-left: 8px;
-  color: #606266;
-}
-
-.form-actions {
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid #eee;
-  text-align: center;
-}
-
-.add-tag-btn {
-  color: #409EFF;
-}
-
-.add-tag-btn:hover {
-  color: #66b1ff;
-}
-
-.el-input-number {
-  width: 120px;
-}
-
-.problem-form {
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
-.el-form-item {
-  margin-bottom: 22px;
-}
-
-/* 添加过渡动画 */
-.add-form {
-  transition: all 0.3s ease-in-out;
-}
-
-.form-section {
-  transition: all 0.2s ease-in-out;
-}
-
-.form-section:hover {
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  text-align: right;
+  border-top: 1px solid #ebeef5;
 }
 </style> 

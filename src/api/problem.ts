@@ -42,7 +42,7 @@ export const updateProblem = (data: ProblemForm) =>
 
 // 批量删除题目
 export const deleteProblems = (ids: number[]) =>
-  deleteRequestForm('/api/teacher/problem', { ids })
+  deleteRequestForm('/api/teacher/problem', { ids: ids.join(',') })
 
 // 题目分页查询
 export const getProblemPage = (params: PageParams) =>

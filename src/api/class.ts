@@ -2,8 +2,9 @@ import { postRequest, getRequest, deleteRequestForm, putRequest } from '@/utils/
 
 // 教师端接口
 // 增加班级
-export const addClass = (name: string) =>
-  postRequest('/api/teacher/class', { name })
+export const addClass = (name: string) => {
+  return postRequest('/api/teacher/class?name=' + encodeURIComponent(name), null)
+}
 
 // 修改班级信息
 export const updateClass = (data: any) =>

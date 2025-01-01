@@ -1,22 +1,24 @@
 <template>
   <div class="class-manage">
-    <!-- 搜索栏 -->
-    <el-card class="search-card">
-      <el-row :gutter="20">
-        <el-col :span="6">
-          <el-input v-model="searchForm.name" placeholder="请输入班级名称" clearable @keyup.enter.native="getClassList"></el-input>
-        </el-col>
-        <el-col :span="6">
+    <!-- 搜索栏和操作栏 -->
+    <el-card class="header-card">
+      <div class="header-wrapper">
+        <div class="search-wrapper">
+          <el-input 
+            v-model="searchForm.name" 
+            placeholder="请输入班级名称" 
+            clearable 
+            @keyup.enter.native="getClassList"
+            class="search-input">
+          </el-input>
           <el-button type="primary" @click="getClassList" :loading="loading">搜索</el-button>
           <el-button @click="resetSearch">重置</el-button>
-        </el-col>
-      </el-row>
-    </el-card>
-
-    <!-- 操作栏 -->
-    <el-card class="operation-card">
-      <el-button type="primary" @click="handleAdd">新增班级</el-button>
-      <el-button type="danger" @click="handleBatchDelete" :disabled="selectedClasses.length === 0">批量删除</el-button>
+        </div>
+        <div class="operation-wrapper">
+          <el-button type="primary" @click="handleAdd">新增班级</el-button>
+          <el-button type="danger" @click="handleBatchDelete" :disabled="selectedClasses.length === 0">批量删除</el-button>
+        </div>
+      </div>
     </el-card>
 
     <!-- 班级列表 -->
@@ -29,7 +31,14 @@
       >
         <el-table-column type="selection" width="55"></el-table-column>
         <el-table-column prop="name" label="班级名称"></el-table-column>
-        <el-table-column prop="invitationCode" label="邀请码"></el-table-column>
+        <el-table-column prop="invitationCode" label="邀请码">
+          <template slot-scope="scope">
+            <div class="invite-code">
+              <span>{{ scope.row.invitationCode }}</span>
+              <i class="el-icon-document-copy copy-icon" @click="copyInviteCode(scope.row.invitationCode)" title="复制邀请码"></i>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column prop="joinNumber" label="加入人数"></el-table-column>
         <el-table-column prop="createTime" label="创建时间">
           <template slot-scope="scope">
@@ -550,6 +559,15 @@ export default {
       const hour = String(date.getHours()).padStart(2, '0')
       const minute = String(date.getMinutes()).padStart(2, '0')
       return `${year}-${month}-${day} ${hour}:${minute}`
+    },
+    copyInviteCode(code) {
+      const input = document.createElement('input')
+      input.value = code
+      document.body.appendChild(input)
+      input.select()
+      document.execCommand('copy')
+      document.body.removeChild(input)
+      this.$message.success('邀请码已复制')
     }
   }
 }
@@ -557,21 +575,180 @@ export default {
 
 <style scoped>
 .class-manage {
+  height: 100%;
   padding: 20px;
+  background-color: #f5f7fa;
+  box-sizing: border-box;
 }
-.search-card,
-.operation-card {
+
+.header-card {
   margin-bottom: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
 }
+
+.header-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-input {
+  width: 240px;
+}
+
+.operation-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 表格卡片样式 */
+.el-card {
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important;
+}
+
+/* 表格样式 */
+.el-table {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.el-table th {
+  background-color: #f5f7fa !important;
+  color: #606266;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.el-table td {
+  padding: 12px 0;
+}
+
+/* 标签样式 */
+.el-tag {
+  margin-right: 5px;
+  border-radius: 4px;
+}
+
+.el-tag--success {
+  background-color: #f0f9eb;
+}
+
+.el-tag--warning {
+  background-color: #fdf6ec;
+}
+
+.el-tag--danger {
+  background-color: #fef0f0;
+}
+
+/* 分页样式 */
 .pagination {
   margin-top: 20px;
+  padding: 16px 20px;
   text-align: right;
+  background-color: #fff;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
 }
+
+/* 对话框样式 */
+.el-dialog {
+  border-radius: 8px;
+}
+
+.el-dialog__header {
+  padding: 20px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.el-dialog__body {
+  padding: 24px 40px;
+}
+
+.el-dialog__footer {
+  padding: 16px 20px;
+  border-top: 1px solid #ebeef5;
+}
+
+/* 题目管理对话框 */
+.problem-list {
+  padding: 0 20px;
+}
+
 .operation-bar {
   margin-bottom: 20px;
+  padding: 16px 0;
+  border-bottom: 1px solid #ebeef5;
 }
+
 .add-problem-dialog {
   max-height: 600px;
   overflow-y: auto;
+  padding: 0 20px;
+}
+
+/* 按钮样式 */
+.el-button--text {
+  padding: 0 8px;
+}
+
+.el-button--text + .el-button--text {
+  margin-left: 8px;
+}
+
+/* 表单样式 */
+.el-form-item {
+  margin-bottom: 22px;
+}
+
+.el-form-item__label {
+  font-weight: 500;
+}
+
+/* 输入框样式 */
+.el-input {
+  width: 240px;
+}
+
+.el-input__inner {
+  border-radius: 4px;
+}
+
+/* 加载状态样式 */
+.el-loading-mask {
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+.invite-code {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.invite-code span {
+  font-family: monospace;
+  color: #606266;
+}
+
+.copy-icon {
+  color: #409EFF;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s;
+}
+
+.copy-icon:hover {
+  color: #66b1ff;
+  transform: scale(1.1);
 }
 </style>
