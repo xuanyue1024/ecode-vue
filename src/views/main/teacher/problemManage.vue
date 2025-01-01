@@ -52,86 +52,6 @@
         :total="total">
       </el-pagination>
     </div>
-
-    <!-- 新增/编辑题目对话框 -->
-    <el-dialog :title="dialogTitle" :visible.sync="dialogVisible" width="800px">
-      <el-form :model="form" ref="form" label-width="100px">
-        <el-form-item label="题目标题" prop="title">
-          <el-input v-model="form.title"></el-input>
-        </el-form-item>
-        <el-form-item label="难度" prop="grade">
-          <el-select v-model="form.grade" placeholder="请选择难度">
-            <el-option label="简单" value="EASY"></el-option>
-            <el-option label="中等" value="GENERAL"></el-option>
-            <el-option label="困难" value="DIFFICULT"></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="标签">
-          <div style="margin-bottom: 10px">
-            <el-tag
-              :key="tag.id"
-              v-for="tag in selectedTags"
-              closable
-              :disable-transitions="false"
-              @close="handleRemoveTag(tag)">
-              {{tag.name}}
-            </el-tag>
-            <el-input
-              class="input-new-tag"
-              v-if="inputVisible"
-              v-model="inputValue"
-              ref="saveTagInput"
-              size="small"
-              @keyup.enter.native="handleInputConfirm"
-              @blur="handleInputConfirm">
-            </el-input>
-            <el-button v-else class="button-new-tag" size="small" @click="showInput">+ 添加标签</el-button>
-          </div>
-          <el-select
-            v-model="selectedTagIds"
-            multiple
-            filterable
-            remote
-            reserve-keyword
-            placeholder="请输入标签名称搜索"
-            :remote-method="remoteSearchTags"
-            :loading="tagsLoading">
-            <el-option
-              v-for="item in tagOptions"
-              :key="item.id"
-              :label="item.name"
-              :value="item.id">
-            </el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="题目内容" prop="content">
-          <el-input type="textarea" v-model="form.content" :rows="5"></el-input>
-        </el-form-item>
-        <el-form-item label="题目要求" prop="require">
-          <el-input type="textarea" v-model="form.require" :rows="3"></el-input>
-        </el-form-item>
-        <el-form-item label="测试用例">
-          <div v-for="(item, index) in 4" :key="index">
-            <div style="margin-bottom: 10px">
-              <el-input v-model="form['inputTest' + item]" placeholder="输入" style="width: 45%; margin-right: 10px">
-                <template slot="prepend">测试输入{{item}}</template>
-              </el-input>
-              <el-input v-model="form['outputTest' + item]" placeholder="输出" style="width: 45%">
-                <template slot="prepend">测试输出{{item}}</template>
-              </el-input>
-            </div>
-          </div>
-        </el-form-item>
-        <el-form-item label="运行限制">
-          <el-input-number v-model="form.maxTime" :min="1" :max="60" label="最大运行时间(秒)"></el-input-number>
-          <el-input-number v-model="form.maxMemory" :min="64" :max="1024" label="最大内存(MB)" style="margin-left: 20px"></el-input-number>
-        </el-form-item>
-      </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="dialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="handleSubmit">确 定</el-button>
-      </div>
-    </el-dialog>
   </div>
 </template>
 
@@ -153,9 +73,10 @@ export default {
       problemList: [],
       total: 0,
       
-      // 对话框
-      dialogVisible: false,
-      dialogTitle: '新增题目',
+      // 表单显示控制
+      showAddForm: false,
+      
+      // 表单数据
       form: {
         title: '',
         grade: 'EASY',
@@ -179,7 +100,34 @@ export default {
       tagOptions: [],
       tagsLoading: false,
       inputVisible: false,
-      inputValue: ''
+      inputValue: '',
+      
+      // 添加表单验证规则
+      rules: {
+        title: [
+          { required: true, message: '请输入题目标题', trigger: 'blur' },
+          { min: 2, max: 50, message: '标题长度应在 2 到 50 个字符之间', trigger: 'blur' }
+        ],
+        grade: [
+          { required: true, message: '请选择题目难度', trigger: 'change' }
+        ],
+        content: [
+          { required: true, message: '请输入题目描述', trigger: 'blur' },
+          { min: 10, message: '题目描述不能少于 10 个字符', trigger: 'blur' }
+        ],
+        require: [
+          { required: true, message: '请输入解题要求', trigger: 'blur' }
+        ],
+        maxTime: [
+          { required: true, message: '请设置最大运行时间', trigger: 'blur' }
+        ],
+        maxMemory: [
+          { required: true, message: '请设置最大内存限制', trigger: 'blur' }
+        ]
+      },
+      
+      // 添加提交状态
+      submitting: false
     }
   },
   created() {
@@ -248,40 +196,12 @@ export default {
     
     // 新增题目
     handleAdd() {
-      this.dialogTitle = '新增题目'
-      this.form = {
-        title: '',
-        grade: 'EASY',
-        content: '',
-        require: '',
-        maxTime: 5,
-        maxMemory: 512,
-        inputTest1: '',
-        outputTest1: '',
-        inputTest2: '',
-        outputTest2: '',
-        inputTest3: '',
-        outputTest3: '',
-        inputTest4: '',
-        outputTest4: ''
-      }
-      this.selectedTags = []
-      this.selectedTagIds = []
-      this.dialogVisible = true
+      this.$router.push('/problemManage/add')
     },
     
     // 编辑题目
-    async handleEdit(row) {
-      this.dialogTitle = '编辑题目'
-      this.form = { ...row }
-      if (row.tagIds && row.tagIds.length > 0) {
-        const res = await getTagsByIds(row.tagIds)
-        if (res.data.code === 200) {
-          this.selectedTags = res.data.data
-          this.selectedTagIds = row.tagIds
-        }
-      }
-      this.dialogVisible = true
+    handleEdit(row) {
+      this.$router.push(`/problemManage/edit/${row.id}`)
     },
     
     // 删除题目
@@ -320,7 +240,7 @@ export default {
             })
             if (tagRes.data.code === 200) {
               this.$message.success('更新成功')
-              this.dialogVisible = false
+              this.showAddForm = false
               this.getProblemList()
             }
           }
@@ -336,7 +256,7 @@ export default {
             })
             if (tagRes.data.code === 200) {
               this.$message.success('新增成功')
-              this.dialogVisible = false
+              this.showAddForm = false
               this.getProblemList()
             }
           }
@@ -394,6 +314,29 @@ export default {
       }
       this.inputVisible = false
       this.inputValue = ''
+    },
+    
+    // 取消编辑
+    handleCancel() {
+      this.showAddForm = false
+      this.form = {
+        title: '',
+        grade: 'EASY',
+        content: '',
+        require: '',
+        maxTime: 5,
+        maxMemory: 512,
+        inputTest1: '',
+        outputTest1: '',
+        inputTest2: '',
+        outputTest2: '',
+        inputTest3: '',
+        outputTest3: '',
+        inputTest4: '',
+        outputTest4: ''
+      }
+      this.selectedTags = []
+      this.selectedTagIds = []
     }
   }
 }
@@ -406,24 +349,144 @@ export default {
 
 .search-bar {
   margin-bottom: 20px;
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
 }
 
-.pagination {
-  margin-top: 20px;
-  text-align: right;
+.add-form {
+  background-color: #fff;
+  padding: 30px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
 }
 
-.input-new-tag {
-  width: 90px;
-  margin-left: 10px;
-  vertical-align: bottom;
+.form-header {
+  margin-bottom: 30px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 15px;
 }
 
-.button-new-tag {
-  margin-left: 10px;
-  height: 32px;
-  line-height: 30px;
-  padding-top: 0;
-  padding-bottom: 0;
+.form-header h3 {
+  margin: 0;
+  color: #303133;
+  font-size: 20px;
+}
+
+.form-desc {
+  margin: 10px 0 0;
+  color: #909399;
+  font-size: 14px;
+}
+
+.form-section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+}
+
+.section-title {
+  margin: 0 0 20px;
+  color: #303133;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.form-tip {
+  margin-top: 5px;
+  color: #909399;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.tags-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.selected-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.tag-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tag-item {
+  margin: 0;
+}
+
+.test-cases {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.test-case-item {
+  padding: 15px;
+  background-color: #fff;
+  border-radius: 4px;
+  border: 1px solid #e4e7ed;
+}
+
+.test-case-header {
+  margin-bottom: 15px;
+  color: #303133;
+  font-weight: 500;
+}
+
+.unit-label {
+  margin-left: 8px;
+  color: #606266;
+}
+
+.form-actions {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+  text-align: center;
+}
+
+.add-tag-btn {
+  color: #409EFF;
+}
+
+.add-tag-btn:hover {
+  color: #66b1ff;
+}
+
+.el-input-number {
+  width: 120px;
+}
+
+.problem-form {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.el-form-item {
+  margin-bottom: 22px;
+}
+
+/* 添加过渡动画 */
+.add-form {
+  transition: all 0.3s ease-in-out;
+}
+
+.form-section {
+  transition: all 0.2s ease-in-out;
+}
+
+.form-section:hover {
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
 </style> 
