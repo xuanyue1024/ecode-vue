@@ -1,4 +1,4 @@
-import { postRequest, getRequest, deleteRequestForm, putRequest, putRequestJson } from '@/utils/request'
+import { postRequest, getRequest, deleteRequestForm, putRequest, putRequestJson, deleteRequest } from '@/utils/request'
 
 interface ProblemForm {
   id?: number
@@ -38,7 +38,7 @@ export const addProblem = (data: ProblemForm) =>
 
 // 修改题目信息
 export const updateProblem = (data: ProblemForm) =>
-  putRequest('/api/teacher/problem', data)
+  putRequestJson('/api/teacher/problem', data)
 
 // 批量删除题目
 export const deleteProblems = (ids: number[]) =>
