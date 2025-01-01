@@ -260,9 +260,6 @@ export default {
         ],
         content: [
           { required: true, message: '请输入题目描述', trigger: 'blur' }
-        ],
-        require: [
-          { required: true, message: '请输入解题要求', trigger: 'blur' }
         ]
       },
       markdownToolbars: {
@@ -367,11 +364,32 @@ export default {
       this.$refs.form.validate(async valid => {
         if (valid) {
           try {
+            // 1. 先提交题目基本信息
+            const formData = { ...this.form }
+            delete formData.tagIds // 移除标签信息，单独处理
+            
             const res = this.isEdit
-              ? await updateProblem(this.form)
-              : await addProblem(this.form)
+              ? await updateProblem(formData)
+              : await addProblem(formData)
 
             if (res.data.code === 200) {
+              // 2. 获取题目ID
+              const problemId = this.isEdit ? this.form.id : res.data.data
+              
+              // 3. 如果有标签，设置标签
+              if (this.form.tagIds && this.form.tagIds.length > 0) {
+                try {
+                  await setProblemTags({
+                    problemId: problemId,
+                    tagIds: this.form.tagIds.map(tag => tag.id)
+                  })
+                } catch (error) {
+                  console.error('设置标签失败:', error)
+                  this.$message.error('设置标签失败')
+                  return
+                }
+              }
+              
               this.$message.success(this.isEdit ? '修改成功' : '新增成功')
               this.handleBack()
             }
@@ -399,15 +417,21 @@ export default {
           if (res.data.code === 200) {
             const newTagId = res.data.data
             // 更新标签列表
-            this.tagOptions = [...this.tagOptions, { id: newTagId, name: newTagValue }]
-            // 更新选中的标签ID
-            this.form.tagIds = [...this.form.tagIds, newTagId]
+            const newTag = { id: newTagId, name: newTagValue }
+            this.tagOptions = [...this.tagOptions, newTag]
+            // 更新选中的标签，移除字符串值，添加新的标签对象
+            this.form.tagIds = values
+              .filter(value => typeof value !== 'string')
+              .concat([newTag])
             this.$message.success('创建标签成功')
           }
         } catch (error) {
           console.error('创建标签失败:', error)
           this.$message.error('创建标签失败')
         }
+      } else {
+        // 直接更新选中的标签
+        this.form.tagIds = values
       }
     },
 
