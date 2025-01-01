@@ -39,6 +39,11 @@
         background-color="#fff"
         text-color="#303133"
         active-text-color="#409EFF">
+        <!-- 个人信息 -->
+        <el-menu-item index="personalDetails" @click="$router.push('/personalDetails')">
+          <i class="el-icon-user"></i>
+          <span slot="title">个人信息</span>
+        </el-menu-item>
         <el-menu-item index="myClass" @click="$router.push('/myClass')">
           <i class="el-icon-document"></i>
           <span slot="title">我的班级</span>

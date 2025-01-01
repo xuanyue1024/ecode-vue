@@ -13,7 +13,7 @@
       <div class="avatar-section">
         <el-upload
           class="avatar-uploader"
-          action="/api/upload"
+          action="/api/open/upload"
           :show-file-list="false"
           :on-success="handleAvatarSuccess"
           :before-upload="beforeAvatarUpload">
@@ -32,20 +32,31 @@
       <!-- 右侧表单区域 -->
       <div class="form-section">
         <el-form :model="userInfo" label-width="100px" ref="form" :rules="rules" class="info-form">
-          <el-form-item label="昵称" prop="nickname">
-            <el-input v-model="userInfo.nickname" placeholder="请输入昵称"></el-input>
+          <el-form-item label="用户名">
+            <el-input v-model="userInfo.username" disabled></el-input>
           </el-form-item>
 
-          <el-form-item label="真实姓名" prop="realName">
-            <el-input v-model="userInfo.realName" placeholder="请输入真实姓名"></el-input>
+          <el-form-item label="角色">
+            <el-input v-model="userInfo.role" disabled></el-input>
+          </el-form-item>
+
+          <el-form-item label="昵称" prop="name">
+            <el-input v-model="userInfo.name" placeholder="请输入昵称"></el-input>
           </el-form-item>
 
           <el-form-item label="性别">
-            <el-radio-group v-model="userInfo.gender">
-              <el-radio label="男">男</el-radio>
-              <el-radio label="女">女</el-radio>
-              <el-radio label="其他">其他</el-radio>
+            <el-radio-group v-model="userInfo.sex">
+              <el-radio label="MALE">男</el-radio>
+              <el-radio label="FEMALE">女</el-radio>
             </el-radio-group>
+          </el-form-item>
+
+          <el-form-item label="电话" prop="phone">
+            <el-input v-model="userInfo.phone" placeholder="请输入电话号码"></el-input>
+          </el-form-item>
+
+          <el-form-item label="地址" prop="address">
+            <el-input v-model="userInfo.address" placeholder="请输入地址"></el-input>
           </el-form-item>
 
           <el-form-item label="出生日期">
@@ -57,15 +68,6 @@
               value-format="yyyy-MM-dd"
               style="width: 100%">
             </el-date-picker>
-          </el-form-item>
-
-          <el-form-item label="职业身份">
-            <el-select v-model="userInfo.job" placeholder="请选择职业身份" style="width: 100%">
-              <el-option label="学生" value="student"></el-option>
-              <el-option label="教师" value="teacher"></el-option>
-              <el-option label="工程师" value="engineer"></el-option>
-              <el-option label="其他" value="other"></el-option>
-            </el-select>
           </el-form-item>
 
           <el-form-item label="邮箱" prop="email">
@@ -115,17 +117,27 @@
 </template>
 
 <script>
+import { getUserInfo, updateUserInfo, uploadFile, getEmailCode } from '@/api/user'
+
 export default {
   name: 'PersonalDetails',
   data() {
     return {
       userInfo: {
-        nickname: '',
-        gender: '男',
-        realName: '',
+        id: null,
+        username: '',
+        role: '',
+        email: '',
+        status: '',
+        name: '',
+        profilePicture: '',
+        phone: '',
+        sex: 'MALE',
+        address: '',
+        score: 0,
         birthDate: '',
-        job: '',
-        email: 'example@example.com',
+        createTime: '',
+        updateTime: ''
       },
       avatarUrl: '',
       emailDialogVisible: false,
@@ -137,16 +149,16 @@ export default {
         code: ''
       },
       rules: {
-        nickname: [
+        name: [
           { required: true, message: '请输入昵称', trigger: 'blur' },
           { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
-        ],
-        realName: [
-          { required: true, message: '请输入真实姓名', trigger: 'blur' }
         ],
         email: [
           { required: true, message: '请输入邮箱地址', trigger: 'blur' },
           { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
+        ],
+        phone: [
+          { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
         ]
       },
       emailRules: {
@@ -166,68 +178,182 @@ export default {
       return this.isEmailSending ? `${this.countdown}s后重试` : '发送验证码'
     }
   },
+  created() {
+    this.getUserDetails()
+  },
   methods: {
-    handleAvatarSuccess(res, file) {
-      this.avatarUrl = URL.createObjectURL(file.raw);
-      this.$message.success('头像上传成功');
+    // 获取用户详情
+    async getUserDetails() {
+      try {
+        const res = await getUserInfo()
+        if (res.data.code === 200) {
+          const data = res.data.data
+          this.userInfo = {
+            id: data.id,
+            username: data.username,
+            role: data.role,
+            email: data.email,
+            status: data.status,
+            name: data.name,
+            profilePicture: data.profilePicture,
+            phone: data.phone,
+            sex: data.sex,
+            address: data.address,
+            score: data.score,
+            birthDate: data.birthDate,
+            createTime: data.createTime,
+            updateTime: data.updateTime
+          }
+          this.avatarUrl = data.profilePicture
+        }
+      } catch (error) {
+        console.error('获取用户信息失败:', error)
+        this.$message.error('获取用户信息失败')
+      }
     },
+
+    // 处理头像上传成功
+    async handleAvatarSuccess(res, file) {
+      if (res.code === 200) {
+        this.avatarUrl = res.data
+        // 更新用户信息中的头像
+        try {
+          const updateData = {
+            profilePicture: res.data
+          }
+          const updateRes = await updateUserInfo(updateData)
+          if (updateRes.data.code === 200) {
+            this.$message.success('头像更新成功')
+            this.getUserDetails() // 刷新用户信息
+          } else {
+            this.$message.error(updateRes.data.msg || '更新头像失败')
+          }
+        } catch (error) {
+          console.error('更新头像失败:', error)
+          this.$message.error('更新头像失败')
+        }
+      } else {
+        this.$message.error(res.msg || '上传头像失败')
+      }
+    },
+
+    // 头像上传前的验证
     beforeAvatarUpload(file) {
-      const isJPG = file.type === 'image/jpeg' || file.type === 'image/png';
-      const isLt2M = file.size / 1024 / 1024 < 2;
+      const isJPG = file.type === 'image/jpeg' || file.type === 'image/png'
+      const isLt2M = file.size / 1024 / 1024 < 2
 
       if (!isJPG) {
-        this.$message.error('上传头像图片只能是 JPG/PNG 格式!');
+        this.$message.error('上传头像图片只能是 JPG/PNG 格式!')
       }
       if (!isLt2M) {
-        this.$message.error('上传头像图片大小不能超过 2MB!');
+        this.$message.error('上传头像图片大小不能超过 2MB!')
       }
-      return isJPG && isLt2M;
+      return isJPG && isLt2M
     },
+
+    // 打开邮箱修改对话框
     openEmailDialog() {
-      this.emailDialogVisible = true;
-      this.emailForm.newEmail = '';
-      this.emailForm.code = '';
+      this.emailDialogVisible = true
+      this.emailForm.newEmail = ''
+      this.emailForm.code = ''
     },
-    sendEmailCode() {
-      this.isEmailSending = true;
-      this.countdown = 60;
+
+    // 发送邮箱验证码
+    async sendEmailCode() {
+      if (!this.emailForm.newEmail) {
+        return this.$message.warning('请先输入新邮箱地址')
+      }
+      this.isEmailSending = true
+      this.countdown = 60
       this.timer = setInterval(() => {
         if (this.countdown > 0) {
-          this.countdown--;
+          this.countdown--
         } else {
-          this.isEmailSending = false;
-          clearInterval(this.timer);
+          this.isEmailSending = false
+          clearInterval(this.timer)
         }
-      }, 1000);
-      // TODO: 实际发送验证码的API调用
-      this.$message.success('验证码已发送到邮箱');
+      }, 1000)
+      
+      try {
+        const res = await getEmailCode(this.emailForm.newEmail)
+        if (res.data.code === 200) {
+          this.$message.success('验证码已发送到邮箱')
+        } else {
+          this.$message.error(res.data.msg || '发送验证码失败')
+          this.isEmailSending = false
+          clearInterval(this.timer)
+        }
+      } catch (error) {
+        console.error('发送验证码失败:', error)
+        this.$message.error('发送验证码失败')
+        this.isEmailSending = false
+        clearInterval(this.timer)
+      }
     },
-    confirmEmailChange() {
-      this.$refs.emailForm.validate(valid => {
+
+    // 确认修改邮箱
+    async confirmEmailChange() {
+      this.$refs.emailForm.validate(async valid => {
         if (valid) {
-          // TODO: 实际修改邮箱的API调用
-          this.userInfo.email = this.emailForm.newEmail;
-          this.emailDialogVisible = false;
-          this.$message.success('邮箱修改成功');
+          try {
+            const updateData = {
+              email: this.emailForm.newEmail,
+              code: this.emailForm.code
+            }
+            const res = await updateUserInfo(updateData)
+            if (res.data.code === 200) {
+              this.userInfo.email = this.emailForm.newEmail
+              this.emailDialogVisible = false
+              this.$message.success('邮箱修改成功')
+              this.getUserDetails() // 刷新用户信息
+            } else {
+              this.$message.error(res.data.msg || '修改邮箱失败')
+            }
+          } catch (error) {
+            console.error('修改邮箱失败:', error)
+            this.$message.error('修改邮箱失败')
+          }
         }
-      });
+      })
     },
-    saveInfo() {
-      this.$refs.form.validate(valid => {
+
+    // 保存用户信息
+    async saveInfo() {
+      this.$refs.form.validate(async valid => {
         if (valid) {
-          // TODO: 实际保存用户信息的API调用
-          this.$message.success('个人信息保存成功');
+          try {
+            const updateData = {
+              name: this.userInfo.name,
+              sex: this.userInfo.sex,
+              birthDate: this.userInfo.birthDate || null,
+              address: this.userInfo.address || '',
+              phone: this.userInfo.phone || null
+            }
+            
+            const res = await updateUserInfo(updateData)
+            if (res.data.code === 200) {
+              this.$message.success('个人信息保存成功')
+              this.getUserDetails() // 刷新用户信息
+            } else {
+              this.$message.error(res.data.msg || '保存失败')
+            }
+          } catch (error) {
+            console.error('保存用户信息失败:', error)
+            this.$message.error('保存失败')
+          }
         }
-      });
+      })
     },
+
+    // 取消修改
     cancelEdit() {
-      this.$refs.form.resetFields();
-      this.$message.info('已取消修改');
+      this.getUserDetails()
+      this.$message.info('已取消修改')
     }
   },
   beforeDestroy() {
     if (this.timer) {
-      clearInterval(this.timer);
+      clearInterval(this.timer)
     }
   }
 }
@@ -342,19 +468,12 @@ export default {
 }
 
 .email-input {
-  width: 100%;
   display: flex;
   gap: 10px;
-  align-items: center;
 }
 
 .email-input .el-input {
   flex: 1;
-}
-
-.email-input .el-button {
-  flex-shrink: 0;
-  margin-left: 10px;
 }
 
 .verify-code {
