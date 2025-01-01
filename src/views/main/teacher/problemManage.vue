@@ -192,19 +192,31 @@ export default {
       try {
         const res = await getProblemPage(this.searchForm)
         if (res.data.code === 200) {
-          this.problemList = res.data.data.records
+          const problems = res.data.data.records
           this.total = res.data.data.total
-          // 获取题目的标签
-          for (let problem of this.problemList) {
+
+          // 并行获取所有题目的标签
+          const tagPromises = problems.map(async (problem) => {
             if (problem.tagIds && problem.tagIds.length > 0) {
-              const tagRes = await getTagsByIds(problem.tagIds)
-              if (tagRes.data.code === 200) {
-                problem.tags = tagRes.data.data
+              try {
+                const tagRes = await getTagsByIds(problem.tagIds)
+                if (tagRes.data.code === 200) {
+                  problem.tags = tagRes.data.data
+                } else {
+                  problem.tags = []
+                }
+              } catch (error) {
+                console.error('获取题目标签失败:', error)
+                problem.tags = []
               }
             } else {
               problem.tags = []
             }
-          }
+            return problem
+          })
+
+          // 等待所有标签请求完成
+          this.problemList = await Promise.all(tagPromises)
         }
       } catch (error) {
         console.error('获取题目列表失败:', error)

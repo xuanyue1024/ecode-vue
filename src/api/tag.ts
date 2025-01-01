@@ -1,17 +1,13 @@
-import { postRequest, getRequest, deleteRequestForm } from '@/utils/request'
+import { getRequest, postRequest } from '@/utils/request'
 
-// 模糊查询标签
+// 搜索标签
 export const searchTags = (name: string) =>
-  getRequest(`/api/teacher/tag?name=${name}`)
+  getRequest(`/api/teacher/tag/search?name=${name}`)
 
-// 批量删除标签
-export const deleteTags = (ids: number[]) =>
-  deleteRequestForm('/api/teacher/tag', { ids })
-
-// 通过id获取标签集合
-export const getTagsByIds = (ids: number[]) =>
-  getRequest(`/api/teacher/tag/getByIds?ids=${ids.join(',')}`)
-
-// 增加标签
+// 添加标签
 export const addTag = (name: string) =>
-  postRequest(`/api/teacher/tag/${name}`, {}) 
+  postRequest('/api/teacher/tag', { name })
+
+// 根据id集合获取标签
+export const getTagsByIds = (ids: number[]) =>
+  getRequest(`/api/teacher/tag/getByIds?ids=${ids.join(',')}`) 
