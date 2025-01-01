@@ -1,77 +1,68 @@
 <template>
 <div class="main">
-  <el-container>
-    <el-header>
-      <el-menu :default-active="activeIndex" class="el-menu-demo" mode="horizontal">
-        <el-menu-item index="">
-          <div class="collapse-btn" @click="toggleCollapse">
-            <img src="@/assets/logo.png" class="menu-icon" :class="{'is-active': isCollapse}" alt="toggle menu" />
-          </div>
+  <!-- 顶部导航栏 -->
+  <div class="top-header">
+    <div class="header-content">
+      <div class="header-left">
+        <i class="el-icon-menu toggle-icon" @click="toggleCollapse"></i>
+        <div class="divider"></div>
+        <h2 class="page-title">在线编程学习平台</h2>
+      </div>
+      <div class="header-right">
+        <el-dropdown trigger="click">
+          <span class="el-dropdown-link">
+            <el-avatar :size="32" icon="el-icon-user-solid"></el-avatar>
+            <span class="username">{{ $store.state.username }}</span>
+            <i class="el-icon-arrow-down el-icon--right"></i>
+          </span>
+          <el-dropdown-menu slot="dropdown">
+            <el-dropdown-item @click="$router.push('/personalDetails')">
+              <i class="el-icon-user"></i> 个人信息
+            </el-dropdown-item>
+            <el-dropdown-item @click="logout">
+              <i class="el-icon-switch-button"></i> 退出登录
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </el-dropdown>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主要内容区域 -->
+  <div class="main-container">
+    <!-- 左侧菜单 -->
+    <div class="side-menu" :class="{ 'is-collapse': isCollapse }">
+      <el-menu 
+        :default-active="activeIndex" 
+        class="menu-list"
+        :collapse="isCollapse"
+        background-color="#fff"
+        text-color="#303133"
+        active-text-color="#409EFF">
+        <el-menu-item index="myClass" @click="$router.push('/myClass')">
+          <i class="el-icon-document"></i>
+          <span slot="title">我的班级</span>
         </el-menu-item>
-        <el-menu-item index="1">处理中心</el-menu-item>
-        <el-submenu index="2">
-          <template slot="title">我的工作台</template>
-          <el-menu-item index="2-1">选项1</el-menu-item>
-          <el-menu-item index="2-2">选项2</el-menu-item>
-          <el-menu-item index="2-3">选项3</el-menu-item>
-          <el-submenu index="2-4">
-            <template slot="title">选项4</template>
-            <el-menu-item index="2-4-1">选项1</el-menu-item>
-            <el-menu-item index="2-4-2">选项2</el-menu-item>
-            <el-menu-item index="2-4-3">选项3</el-menu-item>
-          </el-submenu>
-        </el-submenu>
-
-        <el-submenu index="img" style="float: right">
-          <template slot="title">
-            <span class="el-dropdown-link">
-              {{$store.state.username}}  <el-image
-                        style="width: 38px; height: 38px; border-radius: 50%;"
-                        src="https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg"
-                        fit="contain">
-                    </el-image>
-            </span>
-          </template>
-          <el-menu-item index="2-1">选项1</el-menu-item>
-          <el-menu-item index="2-2" @click="() => {this.$router.push('/personalDetails')}">个人信息</el-menu-item>
-          <el-menu-item index="logout" @click="logout">退出登录</el-menu-item>
-        </el-submenu>
-        <!-- <el-menu-item index="3" style="float: right">消息中心</el-menu-item> -->
+        <el-menu-item index="classManage" @click="$router.push('/classManage')">
+          <i class="el-icon-folder"></i>
+          <span slot="title">班级管理</span>
+        </el-menu-item>
+        <el-menu-item index="problemManage" @click="$router.push('/problemManage')">
+          <i class="el-icon-edit-outline"></i>
+          <span slot="title">题目管理</span>
+        </el-menu-item>
+        <el-menu-item index="chat" @click="$router.push('/chat')">
+          <i class="el-icon-chat-dot-round"></i>
+          <span slot="title">AI 助手</span>
+        </el-menu-item>
       </el-menu>
-    </el-header>
-    <!--左侧布局-->
-    <el-container>
-      <el-aside style="overflow: hidden;width: auto;height: 100%">
-        <el-menu default-active="1-4-1" class="el-menu-vertical-demo" :collapse="isCollapse">
-          <!--班级管理-->
-          <el-menu-item index="myClass" @click="() => {this.$router.push('/myClass')}">
-            <i class="el-icon-document"></i>
-            <span slot="title">s我的班级</span>
-          </el-menu-item>
+    </div>
 
-          <el-menu-item index="classManage" @click="() => {this.$router.push('/classManage')}">
-            <i class="el-icon-document"></i>
-            <span slot="title">t班级管理</span>
-          </el-menu-item>
-
-          <el-menu-item index="problemManage" @click="() => {this.$router.push('/problemManage')}">
-            <i class="el-icon-edit-outline"></i>
-            <span slot="title">t题目管理</span>
-          </el-menu-item>
-
-          <el-menu-item index="4" @click="navigateTo()">
-            <i class="el-icon-setting"></i>
-            <span slot="title">导航四</span>
-          </el-menu-item>
-
-        </el-menu>
-      </el-aside>
-      <!--主界面-->
-      <el-main>
-        <router-view />
-      </el-main>
-    </el-container>
-  </el-container>
+    <!-- 主内容区域 -->
+    <div class="main-content">
+      <router-view />
+    </div>
+  </div>
 </div>
 </template>
 
@@ -81,54 +72,181 @@ export default {
   data() {
     return {
       isCollapse: false,
-      activeIndex: '1',
-      activeIndex2: '1'
+      activeIndex: 'myClass'
     }
   },
   methods: {
     toggleCollapse() {
       this.isCollapse = !this.isCollapse
     },
-    //退出登录
     logout() {
       window.localStorage.removeItem('token')
       this.$message.success('退出登录成功')
       this.$router.push('/login')
-    },
-    navigateTo() {
-      // 导航方法的实现
     }
   }
 }
 </script>
 
-<style>
-body,
-html {
+<style scoped>
+.main {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f5f7fa;
+}
+
+.top-header {
+  height: 60px;
+  background-color: white;
+  border-bottom: 1px solid #e6e6e6;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+.header-content {
+  height: 100%;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.toggle-icon {
+  font-size: 20px;
+  color: #606266;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.toggle-icon:hover {
+  background-color: #f5f7fa;
+  color: #409EFF;
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background-color: #dcdfe6;
+  margin: 0 20px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.el-dropdown-link {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 5px 8px;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.el-dropdown-link:hover {
+  background-color: #f5f7fa;
+}
+
+.username {
+  margin: 0 8px;
+  color: #606266;
+}
+
+.el-dropdown-menu i {
+  margin-right: 8px;
+}
+
+.main-container {
+  margin-top: 60px;
+  flex: 1;
+  display: flex;
+  min-height: calc(100vh - 60px);
+}
+
+.side-menu {
+  position: fixed;
+  left: 0;
+  top: 60px;
+  bottom: 0;
+  width: 200px;
+  background-color: white;
+  transition: all 0.3s;
+  z-index: 999;
+}
+
+.side-menu.is-collapse {
+  width: 64px;
+}
+
+.menu-list {
+  border-right: none;
   height: 100%;
 }
 
-.el-menu-vertical-demo {
-  height: 100vh;
+.main-content {
+  flex: 1;
+  margin-left: 200px;
+  padding: 20px;
+  transition: margin-left 0.3s;
+  min-height: calc(100vh - 60px);
+  box-sizing: border-box;
 }
 
-.el-menu-vertical-demo:not(.el-menu--collapse) {
-  width: 200px;
-  min-height: 400px;
+.is-collapse + .main-content {
+  margin-left: 64px;
 }
 
-.collapse-btn {
-  cursor: pointer;
-  padding: 0 15px;
-}
+/* 响应式布局 */
+@media screen and (max-width: 768px) {
+  .header-content {
+    padding: 0 15px;
+  }
 
-.menu-icon {
-  width: 20px;
-  height: 20px;
-  transition: transform 0.3s;
-}
+  .divider {
+    margin: 0 15px;
+  }
 
-.menu-icon.is-active {
-  transform: rotate(180deg);
+  .username {
+    display: none;
+  }
+
+  .side-menu {
+    transform: translateX(-200px);
+  }
+
+  .side-menu.is-collapse {
+    transform: translateX(-64px);
+  }
+
+  .side-menu:not(.is-collapse) {
+    transform: translateX(0);
+  }
+
+  .main-content {
+    margin-left: 0;
+  }
+
+  .is-collapse + .main-content {
+    margin-left: 0;
+  }
 }
 </style>

@@ -29,15 +29,13 @@
             <i class="el-icon-more"></i>
             <el-dropdown-menu slot="dropdown">
               <el-dropdown-item command="1" icon="el-icon-copy-document">复制邀请码</el-dropdown-item>
-              <el-dropdown-item command="2" icon="el-icon-close">退出班级</el-dropdown-item>
-              <el-dropdown-item command="3" icon="el-icon-user">查看成员</el-dropdown-item>
-              <el-dropdown-item command="4" icon="el-icon-notebook-2">查看题目</el-dropdown-item>
+              <el-dropdown-item command="2" icon="el-icon-close" class="danger-item">退出班级</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
         </div>
         <div class="card-content">
           <div class="teacher-info">
-            <el-avatar :size="50" icon="el-icon-user-solid"></el-avatar>
+            <el-avatar :size="40" icon="el-icon-user-solid"></el-avatar>
             <div class="info-text">
               <div class="teacher-name">{{ item.teacherName }}</div>
               <div class="create-time">创建于: {{ formatDate(item.createTime) }}</div>
@@ -49,8 +47,8 @@
               <span>{{ item.joinNumber }} 名学生</span>
             </div>
             <div class="stat-item">
-              <i class="el-icon-notebook-2"></i>
-              <span>{{ item.problemCount || 0 }} 道题目</span>
+              <i class="el-icon-key"></i>
+              <span>邀请码：{{ item.invitationCode }}</span>
             </div>
           </div>
           <el-button 
@@ -400,12 +398,6 @@ export default {
         case '2': // 退出班级
           this.handleQuit(item.id)
           break
-        case '3': // 查看成员
-          this.handleViewMembers(item.id)
-          break
-        case '4': // 查看题目
-          this.handleViewProblems(item.id)
-          break
       }
     },
     // 加入班级
@@ -429,6 +421,16 @@ export default {
         console.error('加入班级错误:', error)
         this.$message.error('加入班级失败')
       }
+    },
+    // 进入班级
+    handleEnterClass(item) {
+      this.$router.push({
+        path: `/class/${item.id}`,
+        query: {
+          name: item.name,
+          teacherName: item.teacherName
+        }
+      })
     }
   }
 }
@@ -438,7 +440,7 @@ export default {
 .my-class-container {
   padding: 20px;
   background-color: #f5f7fa;
-  min-height: calc(100vh - 120px);
+  min-height: calc(100vh - 100px);
 }
 
 .header-actions {
@@ -459,44 +461,51 @@ export default {
 
 .class-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 20px;
   padding: 10px 0;
 }
 
 .class-card {
-  transition: all 0.3s;
+  background-color: white;
   border-radius: 8px;
   overflow: hidden;
+  transition: all 0.3s;
+  border: 1px solid #ebeef5;
 }
 
 .class-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+  transform: translateY(-2px);
 }
 
 .card-header {
-  background: linear-gradient(135deg, #1890ff, #52c41a);
-  color: white;
-  padding: 15px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #ebeef5;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background-color: white;
 }
 
 .class-name {
-  font-size: 18px;
-  font-weight: bold;
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
 }
 
 .el-icon-more {
   cursor: pointer;
   padding: 5px;
   border-radius: 50%;
+  font-size: 16px;
+  color: #909399;
+  transition: all 0.3s;
 }
 
 .el-icon-more:hover {
-  background: rgba(255,255,255,0.2);
+  background-color: #f5f7fa;
+  color: #409EFF;
 }
 
 .card-content {
@@ -510,41 +519,60 @@ export default {
 }
 
 .info-text {
-  margin-left: 15px;
+  margin-left: 12px;
 }
 
 .teacher-name {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: #303133;
+  line-height: 1.4;
 }
 
 .create-time {
   font-size: 12px;
-  color: #999;
-  margin-top: 5px;
+  color: #909399;
+  margin-top: 4px;
 }
 
 .class-stats {
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between;
   margin-bottom: 20px;
+  padding: 12px 16px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
 }
 
 .stat-item {
   display: flex;
   align-items: center;
-  gap: 5px;
-  color: #666;
+  gap: 8px;
+  color: #606266;
+  font-size: 13px;
+}
+
+.stat-item:last-child {
+  color: #409EFF;
 }
 
 .stat-item i {
-  color: #1890ff;
+  font-size: 16px;
+}
+
+.stat-item:first-child i {
+  color: #409EFF;
+}
+
+.stat-item:last-child i {
+  color: #67c23a;
 }
 
 .enter-btn {
   width: 100%;
   border-radius: 4px;
+  height: 36px;
+  font-size: 14px;
 }
 
 .join-class-dialog .el-dialog__body {
@@ -579,5 +607,13 @@ export default {
   .class-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.danger-item {
+  color: #f56c6c;
+}
+
+.danger-item:hover {
+  background-color: #fef0f0;
 }
 </style>

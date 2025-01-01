@@ -48,6 +48,12 @@ const router = new VueRouter({
         }
       ]
     },
+    //学生：班级详情（独立页面）
+    {
+      path: '/class/:id',
+      name: 'classDetail',
+      component: () => import('../views/main/student/classDetail.vue')
+    },
     //代码运行界面
     {
       path: '/code',
