@@ -9,19 +9,18 @@
         <h2 class="page-title">在线编程学习平台</h2>
       </div>
       <div class="header-right">
-        <el-dropdown trigger="click">
-          <span class="el-dropdown-link">
-            <el-avatar :size="32" icon="el-icon-user-solid"></el-avatar>
-            <span class="username">{{ $store.state.username }}</span>
-            <i class="el-icon-arrow-down el-icon--right"></i>
-          </span>
+        <el-dropdown trigger="click" @command="handleCommand">
+          <div class="avatar-container">
+            <el-avatar 
+              :size="36" 
+              :src="userInfo.profilePicture"
+              icon="el-icon-user-solid"
+            ></el-avatar>
+            <span class="username">{{ userInfo.username }}</span>
+            <i class="el-icon-caret-bottom"></i>
+          </div>
           <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item @click="$router.push('/personalDetails')">
-              <i class="el-icon-user"></i> 个人信息
-            </el-dropdown-item>
-            <el-dropdown-item @click="logout">
-              <i class="el-icon-switch-button"></i> 退出登录
-            </el-dropdown-item>
+            <el-dropdown-item command="logout">退出登录</el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
       </div>
@@ -72,22 +71,43 @@
 </template>
 
 <script>
+import { getUserInfo } from '@/api/user'
+
 export default {
   name: 'MainLayout',
   data() {
     return {
       isCollapse: false,
-      activeIndex: 'myClass'
+      activeIndex: 'myClass',
+      userInfo: {
+        profilePicture: ''
+      }
     }
+  },
+  created() {
+    this.getUserDetails()
   },
   methods: {
     toggleCollapse() {
       this.isCollapse = !this.isCollapse
     },
-    logout() {
-      window.localStorage.removeItem('token')
-      this.$message.success('退出登录成功')
-      this.$router.push('/login')
+    handleCommand(command) {
+      if (command === 'logout') {
+        window.localStorage.removeItem('token')
+        window.sessionStorage.removeItem('token')
+        this.$router.push('/login')
+        this.$message.success('已退出登录')
+      }
+    },
+    async getUserDetails() {
+      try {
+        const res = await getUserInfo()
+        if (res.data.code === 200) {
+          this.userInfo = res.data.data
+        }
+      } catch (error) {
+        console.error('获取用户信息失败:', error)
+      }
     }
   }
 }
@@ -158,26 +178,26 @@ export default {
   align-items: center;
 }
 
-.el-dropdown-link {
+.avatar-container {
   display: flex;
   align-items: center;
   cursor: pointer;
-  padding: 5px 8px;
-  border-radius: 4px;
-  transition: all 0.3s;
+  padding: 0 8px;
+  height: 100%;
 }
 
-.el-dropdown-link:hover {
-  background-color: #f5f7fa;
+.avatar-container:hover {
+  background: rgba(0,0,0,0.025);
 }
 
-.username {
-  margin: 0 8px;
-  color: #606266;
+.avatar-container .el-icon-caret-bottom {
+  margin-left: 8px;
+  font-size: 12px;
+  color: #909399;
 }
 
-.el-dropdown-menu i {
-  margin-right: 8px;
+.el-avatar {
+  --el-avatar-bg-color: transparent;
 }
 
 .main-container {
@@ -253,5 +273,11 @@ export default {
   .is-collapse + .main-content {
     margin-left: 0;
   }
+}
+
+.username {
+  margin: 0 8px;
+  color: #303133;
+  font-size: 14px;
 }
 </style>
