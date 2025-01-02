@@ -41,7 +41,7 @@
                         <template v-if="message.role === 'user'">
                           <div class="message-content markdown-body" v-html="renderMarkdown(message.content)"></div>
                           <div class="avatar">
-                            <i class="el-icon-user"></i>
+                            <el-avatar :size="36" :src="userInfo.profilePicture" icon="el-icon-user"></el-avatar>
                           </div>
                         </template>
                         <template v-else>
@@ -209,6 +209,7 @@ import VueDraggableResizable from 'vue-draggable-resizable-gorkys'
 import 'vue-draggable-resizable-gorkys/dist/VueDraggableResizable.css'
 import { Diff2HtmlUI } from 'diff2html/lib/ui/js/diff2html-ui'
 import 'diff2html/bundles/css/diff2html.min.css'
+import { getUserInfo } from '@/api/user'
 
 export default {
   name: 'AcMonaco',
@@ -297,6 +298,9 @@ export default {
       isSubmitDisabled: false, // 提交按钮禁用状态
       diffDialogVisible: false,
       currentDiffs: [],
+      userInfo: {
+        profilePicture: ''
+      }
     }
   },
   watch: {
@@ -360,6 +364,7 @@ export default {
     });
 
     this.getProblemDetail()
+    this.getUserDetails()
   },
   mounted() {
     this.init()
@@ -759,6 +764,16 @@ export default {
     handleCloseDiffDialog() {
       this.diffDialogVisible = false
       this.currentDiffs = []
+    },
+    async getUserDetails() {
+      try {
+        const res = await getUserInfo()
+        if (res.data.code === 200) {
+          this.userInfo = res.data.data
+        }
+      } catch (error) {
+        console.error('获取用户信息失败:', error)
+      }
     }
   }
 }
@@ -961,18 +976,14 @@ html, body {
   padding: 0;
   width: 100%;
   box-sizing: border-box;
-  animation: fadeIn 0.3s ease;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.chat-message.user {
+  justify-content: flex-end;
+}
+
+.chat-message.assistant {
+  justify-content: flex-start;
 }
 
 .chat-message .avatar {
@@ -983,25 +994,23 @@ html, body {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: all 0.3s ease;
 }
 
 .chat-message.user .avatar {
   margin-left: 12px;
-  background: linear-gradient(135deg, #409eff, #3a8ee6);
-  color: white;
-  order: 2;
+  background: transparent;
 }
 
 .chat-message.assistant .avatar {
   margin-right: 12px;
   background: linear-gradient(135deg, #95a5a6, #7f8c8d);
   color: white;
-  order: 1;
 }
 
-.chat-message .avatar i {
-  font-size: 18px;
+.chat-message .avatar .el-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
 }
 
 .chat-message .message-content {
@@ -1018,22 +1027,20 @@ html, body {
   font-weight: 400;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
+  text-align: left;
+  color: #303133;
 }
 
 .chat-message.user .message-content {
-  background: linear-gradient(135deg, #409eff, #3a8ee6);
-  color: #fff;
-  margin-right: 0;
-  order: 1;
+  background: #f0f9ff;
+  border: 1px solid #e6f3ff;
   border-top-right-radius: 4px;
 }
 
 .chat-message.assistant .message-content {
-  background: #ffffff;
-  color: #1a1a1a;
-  margin-left: 0;
-  order: 2;
+  background: white;
   border-top-left-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
 }
 
 .chat-input {
@@ -1678,5 +1685,10 @@ html, body {
 
 .d2h-file-diff {
   overflow: hidden !important;
+}
+
+.chat-message .avatar .el-avatar {
+  width: 100%;
+  height: 100%;
 }
 </style>
