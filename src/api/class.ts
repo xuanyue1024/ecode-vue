@@ -68,10 +68,10 @@ export const getStudentClassProblemPage = (params: {
 export const getClassProblemInfo = (classProblemId: number) =>
   getRequest(`/api/student/class/problem/info/${classProblemId}`)
 
-// 获取班级信息
-export const getClassInfo = (id: number) => 
-  getRequest(`/api/teacher/class/${id}`)
-
 // 教师端获取班级成员
 export const getTeacherClassMembers = (params: any) =>
   getRequest(`/api/teacher/class/members/page?classId=${params.classId}&pageNo=${params.pageNo}&pageSize=${params.pageSize}&name=${params.name || ''}&isAsc=${params.isAsc || false}&sortBy=${params.sortBy || ''}`)
+
+// 获取班级单个题目的做题详细信息
+export const getTeacherClassProblemInfo = (classProblemId: number, studentId: number) =>
+  getRequest(`/api/teacher/class/problem/info/${classProblemId}/${studentId}`)

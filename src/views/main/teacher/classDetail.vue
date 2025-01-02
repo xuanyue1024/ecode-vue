@@ -297,7 +297,7 @@
 </template>
 
 <script>
-import { getTeacherClassMembers, getClassProblemPage, addProblemToClass, removeProblemFromClass, getClassInfo } from '@/api/class'
+import { getTeacherClassMembers, getClassProblemPage, addProblemToClass, removeProblemFromClass, getTeacherClassProblemInfo } from '@/api/class'
 import { getProblemPage } from '@/api/problem'
 import { getUserInfo } from '@/api/user'
 import { formatDate } from '@/utils/date'
@@ -378,7 +378,6 @@ export default {
     this.problemQuery.classId = id
 
     // 初始化数据
-    this.getClassDetails()
     this.initData()
     this.getUserDetails()
   },
@@ -560,7 +559,7 @@ export default {
         // 获取该学生的所有题目完成情况
         const promises = this.problemList.map(async problem => {
           try {
-            const res = await this.$http.get(`/api/teacher/class/problem/info/${problem.classProblemId}/${student.id}`)
+            const res = await getTeacherClassProblemInfo(problem.classProblemId, student.id)
             if (res.data.code === 200) {
               return {
                 ...problem,
@@ -607,21 +606,6 @@ export default {
     handleCommand(command) {
       if (command === 'logout') {
         this.handleLogout()
-      }
-    },
-    async getClassDetails() {
-      try {
-        const res = await getClassInfo(this.classInfo.id)
-        if (res.data.code === 200) {
-          const data = res.data.data
-          this.classInfo = {
-            ...this.classInfo,
-            ...data
-          }
-        }
-      } catch (error) {
-        console.error('获取班级信息失败:', error)
-        this.$message.error('获取班级信息失败')
       }
     }
   }
