@@ -4,24 +4,19 @@
     <div class="top-header">
       <div class="header-content">
         <div class="header-left">
-          <i class="el-icon-back back-icon" @click="$router.push('/myClass')"></i>
+          <i class="el-icon-arrow-left back-icon" @click="$router.go(-1)"></i>
           <div class="divider"></div>
           <h2 class="page-title">班级详情</h2>
         </div>
         <div class="header-right">
-          <el-dropdown trigger="click">
-            <span class="el-dropdown-link">
-              <el-avatar :size="32" icon="el-icon-user-solid"></el-avatar>
-              <span class="username">{{ $store.state.username }}</span>
-              <i class="el-icon-arrow-down el-icon--right"></i>
-            </span>
+          <el-dropdown trigger="click" @command="handleCommand">
+            <div class="user-info">
+              <el-avatar :size="32" :src="userInfo.profilePicture"></el-avatar>
+              <span class="username">{{ userInfo.username }}</span>
+              <i class="el-icon-caret-bottom"></i>
+            </div>
             <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item @click="$router.push('/personalDetails')">
-                <i class="el-icon-user"></i> 个人信息
-              </el-dropdown-item>
-              <el-dropdown-item @click="handleLogout">
-                <i class="el-icon-switch-button"></i> 退出登录
-              </el-dropdown-item>
+              <el-dropdown-item command="logout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
         </div>
@@ -114,7 +109,7 @@
               <el-table-column prop="username" label="用户名"></el-table-column>
               <el-table-column prop="name" label="姓名"></el-table-column>
               <el-table-column prop="email" label="邮箱"></el-table-column>
-              <el-table-column prop="score" label="积分"></el-table-column>
+              <el-table-column prop="totalScore" label="总得分"></el-table-column>
               <el-table-column label="完成率" width="200">
                 <template slot-scope="scope">
                   <el-progress 
@@ -226,6 +221,7 @@
 
 <script>
 import { getClassMembers, getStudentClassProblemPage, getClassProblemInfo } from '@/api/class'
+import { getUserInfo } from '@/api/user'
 
 export default {
   name: 'ClassDetail',
@@ -256,6 +252,10 @@ export default {
         pageSize: 10,
         name: '',
         classId: ''
+      },
+      userInfo: {
+        username: '',
+        profilePicture: ''
       }
     }
   },
@@ -263,6 +263,7 @@ export default {
     this.memberQuery.classId = this.$route.params.id
     this.problemQuery.classId = this.$route.params.id
     this.initData()
+    this.getUserDetails()
   },
   methods: {
     initData() {
@@ -377,12 +378,31 @@ export default {
     },
     // 计算完成进度
     calculateProgress(member) {
-      if (!member.completedCount || !this.classInfo.problemCount) return 0
-      return Math.round((member.completedCount / this.classInfo.problemCount) * 100)
+      // 每道题满分4分，计算总分
+      const maxScore = this.classInfo.problemCount * 4
+      if (!maxScore) return 0
+      return Math.round((member.totalScore / maxScore) * 100)
     },
     // 格式化百分比
     percentageFormat(percentage) {
       return percentage + '%'
+    },
+    // 获取用户信息
+    async getUserDetails() {
+      try {
+        const res = await getUserInfo()
+        if (res.data.code === 200) {
+          this.userInfo = res.data.data
+        }
+      } catch (error) {
+        console.error('获取用户信息失败:', error)
+      }
+    },
+    // 处理下拉菜单命令
+    handleCommand(command) {
+      if (command === 'logout') {
+        this.handleLogout()
+      }
     }
   }
 }
@@ -647,5 +667,22 @@ export default {
   .overview-stats {
     grid-template-columns: 1fr;
   }
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0 8px;
+}
+
+.username {
+  margin: 0 8px;
+  font-size: 14px;
+  color: #606266;
+}
+
+.el-dropdown {
+  color: #606266;
 }
 </style> 
