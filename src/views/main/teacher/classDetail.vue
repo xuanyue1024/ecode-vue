@@ -183,10 +183,11 @@
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="submitCount" label="提交次数" width="100"></el-table-column>
-              <el-table-column prop="passRate" label="通过率" width="100">
+              <el-table-column label="标签" width="200">
                 <template slot-scope="scope">
-                  {{ scope.row.passRate ? (scope.row.passRate * 100).toFixed(1) + '%' : '0%' }}
+                  <el-tag v-for="tag in scope.row.tags" :key="tag.id" size="small" style="margin-right: 5px">
+                    {{ tag.name }}
+                  </el-tag>
                 </template>
               </el-table-column>
               <el-table-column label="操作" width="200">
@@ -216,10 +217,14 @@
           <el-card>
             <div class="statistics-content">
               <h3>学习统计</h3>
-              <!-- 这里可以添加更多统计图表 -->
               <div class="charts-container">
                 <div class="chart-item">
-                  <!-- 在这里添加图表组件 -->
+                  <v-chart 
+                    ref="memberScoreChart" 
+                    :options="memberScoreOptions" 
+                    style="width: 100%; height: 400px;"
+                    autoresize>
+                  </v-chart>
                 </div>
               </div>
             </div>
@@ -301,9 +306,19 @@ import { getTeacherClassMembers, getClassProblemPage, addProblemToClass, removeP
 import { getProblemPage } from '@/api/problem'
 import { getUserInfo } from '@/api/user'
 import { formatDate } from '@/utils/date'
+import ECharts from 'vue-echarts'
+import 'echarts/lib/chart/bar'
+import 'echarts/lib/component/tooltip'
+import 'echarts/lib/component/title'
+import 'echarts/lib/component/legend'
+import 'echarts/lib/component/grid'
+import { getTagsByIds } from '@/api/tag'
 
 export default {
   name: 'TeacherClassDetail',
+  components: {
+    'v-chart': ECharts
+  },
   data() {
     return {
       activeMenu: 'overview',
@@ -358,6 +373,53 @@ export default {
       userInfo: {
         username: '',
         profilePicture: ''
+      },
+      memberScoreOptions: {
+        title: {
+          text: '学生得分统计',
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow'
+          },
+          formatter: function(params) {
+            const data = params[0]
+            return `${data.name}<br/>得分：${data.value}`
+          }
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          data: [],
+          axisLabel: {
+            interval: 0,
+            rotate: 30
+          }
+        },
+        yAxis: {
+          type: 'value',
+          name: '得分'
+        },
+        series: [
+          {
+            type: 'bar',
+            data: [],
+            itemStyle: {
+              color: '#409EFF'
+            },
+            label: {
+              show: true,
+              position: 'top'
+            }
+          }
+        ]
       }
     }
   },
@@ -387,8 +449,11 @@ export default {
       this.queryMembers()
       this.queryProblems()
     },
-    handleMenuSelect(index) {
+    async handleMenuSelect(index) {
       this.activeMenu = index
+      if (index === 'statistics') {
+        await this.queryMembers()
+      }
     },
     handleLogout() {
       window.localStorage.removeItem('token')
@@ -410,12 +475,35 @@ export default {
             const totalScore = this.memberList.reduce((sum, member) => sum + member.totalScore, 0)
             this.averageScore = Math.round(totalScore / this.memberList.length)
           }
+
+          // 如果是在统计页面，更新图表
+          if (this.activeMenu === 'statistics') {
+            this.updateMemberScoreChart(this.memberList)
+          }
         }
       } catch (error) {
         console.error('获取成员列表错误:', error)
         this.$message.error('获取成员列表失败')
       } finally {
         this.memberLoading = false
+      }
+    },
+    updateMemberScoreChart(members) {
+      // 按得分排序
+      const sortedMembers = [...members].sort((a, b) => b.totalScore - a.totalScore)
+      
+      this.memberScoreOptions = {
+        ...this.memberScoreOptions,
+        xAxis: {
+          ...this.memberScoreOptions.xAxis,
+          data: sortedMembers.map(member => member.name || member.username)
+        },
+        series: [
+          {
+            ...this.memberScoreOptions.series[0],
+            data: sortedMembers.map(member => member.totalScore)
+          }
+        ]
       }
     },
     handleMemberSizeChange(val) {
@@ -432,9 +520,33 @@ export default {
       try {
         const res = await getClassProblemPage(this.problemQuery)
         if (res.data.code === 200) {
-          this.problemList = res.data.data.records
+          const problems = res.data.data.records
           this.problemTotal = res.data.data.total
           this.classInfo.problemCount = res.data.data.total
+
+          // 并行获取所有题目的标签
+          const problemsWithTags = await Promise.all(
+            problems.map(async (problem) => {
+              if (problem.tagIds && problem.tagIds.length > 0) {
+                try {
+                  const tagRes = await getTagsByIds(problem.tagIds)
+                  if (tagRes.data.code === 200) {
+                    problem.tags = tagRes.data.data
+                  } else {
+                    problem.tags = []
+                  }
+                } catch (error) {
+                  console.error('获取题目标签失败:', error)
+                  problem.tags = []
+                }
+              } else {
+                problem.tags = []
+              }
+              return problem
+            })
+          )
+
+          this.problemList = problemsWithTags
         }
       } catch (error) {
         console.error('获取题目列表错误:', error)
@@ -855,5 +967,21 @@ export default {
   .overview-stats {
     grid-template-columns: 1fr;
   }
+}
+
+.statistics-content {
+  padding: 20px;
+}
+
+.charts-container {
+  margin-top: 20px;
+}
+
+.chart-item {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
 }
 </style> 
