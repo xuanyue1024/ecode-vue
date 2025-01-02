@@ -22,6 +22,11 @@ const router = new VueRouter({
           name: 'classManage',
           component: () => import('../views/main/teacher/classManage.vue')
         },
+        {
+          path: '/teacher/classDetail/:id',
+          name: 'teacherClassDetail',
+          component: () => import('../views/main/teacher/classDetail.vue')
+        },
         //教师：题目管理
         {
           path: '/problemManage',

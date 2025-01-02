@@ -1,4 +1,4 @@
-import { postRequest, getRequest, deleteRequestForm, putRequest } from '@/utils/request'
+import { postRequest, getRequest, deleteRequest, deleteRequestForm, putRequest } from '@/utils/request'
 
 // 教师端接口
 // 增加班级
@@ -27,7 +27,7 @@ export const addProblemToClass = (data: any) =>
 
 // 批量移除班级题目
 export const removeProblemFromClass = (data: any) =>
-  deleteRequestForm('/api/teacher/class/problem', data)
+  deleteRequest('/api/teacher/class/problem', data)
 
 // 班级题目分页查询
 export const getClassProblemPage = (params: any) =>
@@ -67,3 +67,11 @@ export const getStudentClassProblemPage = (params: {
 // 获取班级题目的做题详细信息
 export const getClassProblemInfo = (classProblemId: number) =>
   getRequest(`/api/student/class/problem/info/${classProblemId}`)
+
+// 获取班级信息
+export const getClassInfo = (id: number) => 
+  getRequest(`/api/teacher/class/${id}`)
+
+// 教师端获取班级成员
+export const getTeacherClassMembers = (params: any) =>
+  getRequest(`/api/teacher/class/members/page?classId=${params.classId}&pageNo=${params.pageNo}&pageSize=${params.pageSize}&name=${params.name || ''}&isAsc=${params.isAsc || false}&sortBy=${params.sortBy || ''}`)

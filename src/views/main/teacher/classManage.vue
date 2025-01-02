@@ -47,6 +47,7 @@
         </el-table-column>
         <el-table-column label="操作" width="300">
           <template slot-scope="scope">
+            <el-button type="text" @click="handleViewDetail(scope.row)">查看详情</el-button>
             <el-button type="text" @click="handleEdit(scope.row)">编辑</el-button>
             <el-button type="text" @click="handleDelete(scope.row)">删除</el-button>
             <el-button type="text" @click="handleProblemManage(scope.row)">题目管理</el-button>
@@ -568,6 +569,15 @@ export default {
       document.execCommand('copy')
       document.body.removeChild(input)
       this.$message.success('邀请码已复制')
+    },
+    handleViewDetail(row) {
+      this.$router.push({
+        path: `/teacher/classDetail/${row.id}`,
+        query: {
+          name: row.name,
+          teacherName: this.userInfo ? this.userInfo.username : ''
+        }
+      })
     }
   }
 }
