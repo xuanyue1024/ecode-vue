@@ -205,10 +205,14 @@
           <el-card>
             <div class="statistics-content">
               <h3>学习统计</h3>
-              <!-- 这里可以添加更多统计图表 -->
               <div class="charts-container">
                 <div class="chart-item">
-                  <!-- 在这里添加图表组件 -->
+                  <v-chart 
+                    ref="scoreChart" 
+                    :options="chartOptions" 
+                    style="width: 100%; height: 400px;"
+                    autoresize>
+                  </v-chart>
                 </div>
               </div>
             </div>
@@ -222,9 +226,19 @@
 <script>
 import { getClassMembers, getStudentClassProblemPage, getClassProblemInfo } from '@/api/class'
 import { getUserInfo } from '@/api/user'
+import { getStudentStatistic } from '@/api/statistic'
+import ECharts from 'vue-echarts'
+import 'echarts/lib/chart/bar'
+import 'echarts/lib/component/tooltip'
+import 'echarts/lib/component/title'
+import 'echarts/lib/component/legend'
+import 'echarts/lib/component/grid'
 
 export default {
   name: 'ClassDetail',
+  components: {
+    'v-chart': ECharts
+  },
   data() {
     return {
       activeMenu: 'overview',
@@ -256,6 +270,66 @@ export default {
       userInfo: {
         username: '',
         profilePicture: ''
+      },
+      // 统计相关
+      chartOptions: {
+        title: {
+          text: '题目完成情况统计',
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow'
+          }
+        },
+        legend: {
+          data: ['得分', '提交次数', '通过次数'],
+          top: 30
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          data: [],
+          axisLabel: {
+            interval: 0,
+            rotate: 30
+          }
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: [
+          {
+            name: '得分',
+            type: 'bar',
+            data: [],
+            itemStyle: {
+              color: '#409EFF'
+            }
+          },
+          {
+            name: '提交次数',
+            type: 'bar',
+            data: [],
+            itemStyle: {
+              color: '#67C23A'
+            }
+          },
+          {
+            name: '通过次数',
+            type: 'bar',
+            data: [],
+            itemStyle: {
+              color: '#E6A23C'
+            }
+          }
+        ]
       }
     }
   },
@@ -270,8 +344,49 @@ export default {
       this.queryMembers()
       this.queryProblems()
     },
-    handleMenuSelect(index) {
+    async handleMenuSelect(index) {
       this.activeMenu = index
+      if (index === 'statistics') {
+        await this.loadStatistics()
+      }
+    },
+    async loadStatistics() {
+      try {
+        const res = await getStudentStatistic(this.$route.params.id)
+        if (res.data.code === 200) {
+          const data = res.data.data
+          const titles = data.key.split(',')
+          const values = data.value
+          const scores = values.score.split(',').map(Number)
+          const submits = values.submit.split(',').map(Number)
+          const passes = values.pass.split(',').map(Number)
+          
+          this.chartOptions = {
+            ...this.chartOptions,
+            xAxis: {
+              ...this.chartOptions.xAxis,
+              data: titles
+            },
+            series: [
+              {
+                ...this.chartOptions.series[0],
+                data: scores
+              },
+              {
+                ...this.chartOptions.series[1],
+                data: submits
+              },
+              {
+                ...this.chartOptions.series[2],
+                data: passes
+              }
+            ]
+          }
+        }
+      } catch (error) {
+        console.error('获取统计数据失败:', error)
+        this.$message.error('获取统计数据失败')
+      }
     },
     handleLogout() {
       window.localStorage.removeItem('token')
@@ -403,6 +518,11 @@ export default {
       if (command === 'logout') {
         this.handleLogout()
       }
+    }
+  },
+  beforeDestroy() {
+    if (this.scoreChart) {
+      this.scoreChart.dispose()
     }
   }
 }
@@ -684,5 +804,21 @@ export default {
 
 .el-dropdown {
   color: #606266;
+}
+
+.statistics-content {
+  padding: 20px;
+}
+
+.charts-container {
+  margin-top: 20px;
+}
+
+.chart-item {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
 }
 </style> 
