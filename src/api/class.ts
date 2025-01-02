@@ -63,3 +63,7 @@ export const getStudentClassProblemPage = (params: {
   sortBy?: string
 }) =>
   getRequest(`/api/student/class/problem/page?classId=${params.classId}&pageNo=${params.pageNo}&pageSize=${params.pageSize}&name=${params.name || ''}&isAsc=${params.isAsc || false}&sortBy=${params.sortBy || ''}`)
+
+// 获取班级题目的做题详细信息
+export const getClassProblemInfo = (classProblemId: number) =>
+  getRequest(`/api/student/class/problem/info/${classProblemId}`)

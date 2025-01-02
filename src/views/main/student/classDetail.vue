@@ -225,7 +225,7 @@
 </template>
 
 <script>
-import { getClassMembers, getStudentClassProblemPage } from '@/api/class'
+import { getClassMembers, getStudentClassProblemPage, getClassProblemInfo } from '@/api/class'
 
 export default {
   name: 'ClassDetail',
@@ -313,7 +313,29 @@ export default {
           name: this.problemQuery.name
         })
         if (res.data.code === 200) {
-          this.problemList = res.data.data.records
+          const problems = res.data.data.records
+          // 获取每个题目的作答情况
+          const problemsWithInfo = await Promise.all(
+            problems.map(async (problem) => {
+              try {
+                const infoRes = await getClassProblemInfo(problem.classProblemId)
+                if (infoRes.data.code === 200) {
+                  return {
+                    ...problem,
+                    submitCount: infoRes.data.data.submitNumber,
+                    passRate: infoRes.data.data.passNumber / (infoRes.data.data.submitNumber || 1),
+                    status: infoRes.data.data.score === 4 ? 'COMPLETED' : 'UNCOMPLETED'
+                  }
+                }
+                return problem
+              } catch (error) {
+                console.error('获取题目作答情况失败:', error)
+                return problem
+              }
+            })
+          )
+          
+          this.problemList = problemsWithInfo
           this.problemTotal = res.data.data.total
           this.classInfo.problemCount = res.data.data.total
           this.completedCount = this.problemList.filter(p => p.status === 'COMPLETED').length
