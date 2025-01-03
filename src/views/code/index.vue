@@ -79,10 +79,20 @@
               <el-option value="vs" label="vs"></el-option>
             </el-select>
               <el-select size="small" v-model="codeEditorSetting.language" placeholder="语言" style="width: 100px; margin-right: 10px;"
-                       @change="() => {this.monacoEditor.updateOptions({ language: this.codeEditorSetting.language });this.monacoEditor.setValue($store.state.exampleCode.get(this.codeEditorSetting.language))}">
+                       @change="() => {
+                         this.monacoEditor.updateOptions({ language: this.codeEditorSetting.language });
+                         this.monacoEditor.setValue(this.$store.getters.getExampleCode(this.codeEditorSetting.language))
+                       }">
               <el-option value="java" label="java"></el-option>
               <el-option value="python3" label="python3"></el-option>
               <el-option value="cpp" label="cpp"></el-option>
+              <el-option value="swift" label="swift"></el-option>
+              <el-option value="rust" label="rust"></el-option>
+              <el-option value="php" label="php"></el-option>
+              <el-option value="nodejs" label="nodejs"></el-option>
+              <el-option value="kotlin" label="kotlin"></el-option>
+              <el-option value="go" label="go"></el-option>
+              <el-option value=".net" label=".net"></el-option>
             </el-select>
               <el-select size="small" v-model="codeEditorSetting.fontSize" placeholder="字体大小" style="width: 100px;"
                        @change="() => {this.monacoEditor.updateOptions({ fontSize: this.codeEditorSetting.fontSize })}">
@@ -226,11 +236,12 @@ export default {
   },
   data() {
     return {
+      activeIndex2: 'code',
       // 主要配置
       defaultOpts: {
         value: `public class Main {
   public static void main(String[] args) {
-    System.out.println("Hello, World!");
+    System.out.println("Hello, ecode");
   }
 }`, // 代码编辑器的值
         theme: 'vs', // 编辑器主题：vs, hc-black, or vs-dark，更多选择详见官网
@@ -392,6 +403,10 @@ export default {
     this.inputEditor = monaco.editor.create(this.$refs.input, this.inoutOpts)
   },
   methods: {
+    handleSelect(key, keyPath) {
+      // 处理菜单选择
+      console.log(key, keyPath);
+    },
     init() {
       // 初始化container的内容，销毁之前生成的编辑器
       this.$refs.container.innerHTML = ''

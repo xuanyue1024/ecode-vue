@@ -7,30 +7,57 @@ Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
-    exampleCode: new Map([
-      ['java', `public class Main {
+    exampleCode: {
+      'java': `public class Main {
   public static void main(String[] args) {
-    System.out.println("Hello, World!");
+    System.out.println("Hello, ecode");
   }
-}`],
-      ['cpp', `#include <stdio.h>
-#include <stdlib.h>
-      
-int main(int argc, char *argv[])
-{
-  // 请在此输入您的代码
+}`,
+      'cpp': `#include <iostream>
+
+int main() {
+  std::cout << "hello, ecode" << std::endl;
   return 0;
-}`],
-      ['python3', `import os
+}`,
+      'python3': `import os
 import sys
 
 # 请在此输入您的代码
-print('hello,ecode')`]
-  ]),
+print('hello,ecode')`,
+      'swift': `import Swift
+
+print("hello, ecode")`,
+      'rust': `fn main() {
+  println!("hello, ecode");
+}`,
+      'php': `<?php
+echo 'hello, ecode';
+?>`,
+      'nodejs': `console.log('hello, ecode');`,
+      'kotlin': `fun main() {
+  println("hello, ecode")
+}`,
+      'go': `package main
+  
+import "fmt"
+  
+func main() {
+  fmt.Println("hello, ecode")
+}`,
+      '.net': `using System;
+  
+class Program {
+  static void Main() {
+    Console.WriteLine("hello, ecode");
+  }
+}`
+    } as const,
     username: '游客',
-    
   },
   getters: {
+    getExampleCode: (state) => (language: keyof typeof state.exampleCode) => {
+      return state.exampleCode[language] || ''
+    }
   },
   mutations: {
     setUserName(state,newName) {
