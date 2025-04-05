@@ -28,8 +28,8 @@
 </template>
 
 <script>
-import { base64ToArrayBuffer } from '@/utils/tool';
 import { getPasskeyList, deletePasskey, getPasskeyRegistration, passkeyRegistration } from '@/api/user';
+import { create, parseCreationOptionsFromJSON } from "@github/webauthn-json/browser-ponyfill";
 export default {
   name: 'passkey',
   data() {
@@ -51,6 +51,7 @@ export default {
         }
       })
     },
+    //删除通行密钥
     deletePasskey(id) {
       deletePasskey(id).then(res => {
         if (res.data.code === 200) {
@@ -67,27 +68,12 @@ export default {
         const res = await getPasskeyRegistration(); // 等待获取注册选项
 
         if (res.data.code === 200) {
-          const publicKeyOptions = res.data.data.publicKey;
+          const publicKeyOptions = parseCreationOptionsFromJSON(res.data.data);
 
-          //处理数据
-          console.log(publicKeyOptions)
-          publicKeyOptions.user.id = base64ToArrayBuffer(publicKeyOptions.user.id);
-          publicKeyOptions.challenge = base64ToArrayBuffer(publicKeyOptions.challenge);
-      
-          //如果已经注册，则取消
-          if (publicKeyOptions.excludeCredentials) {
-            publicKeyOptions.excludeCredentials = publicKeyOptions.excludeCredentials.map(cred => ({
-              ...cred,
-              id: base64ToArrayBuffer(cred.id)
-            }));
-          }
-          // publicKeyOptions.excludeCredentials = [];//测试使用
+          // publicKeyOptions.excludeCredentials = [];//测试使用，不保留响应excludeCredential
 
-          console.log(publicKeyOptions)
-          const credential = await navigator.credentials.create({
-            publicKey: publicKeyOptions
-          });
-          console.log(credential); // 可以在这里处理 credential
+          const credential = await create(publicKeyOptions);
+          console.log(credential); 
 
           // 发送到服务器进行验证
           const data = {

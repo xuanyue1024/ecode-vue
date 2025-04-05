@@ -13,14 +13,14 @@ module.exports = defineConfig({
     open: false,
     hot: true,
     // 域名设置
-    host: 'test.cn',
+    // host: 'test.cn',
     // https设置  E:/zs/www.qinxuehai.com-key.pem不能乱写是你上面下载证书路径跟你设置域名对应
     https: {
       key: fs.readFileSync(
-        path.resolve(__dirname, 'D:/biancode/证书/private.key')
+        path.resolve(__dirname, 'D:/biancode/证书/localhost/private.key')
       ),
       cert: fs.readFileSync(
-        path.resolve(__dirname, 'D:/biancode/证书/certificate.crt')
+        path.resolve(__dirname, 'D:/biancode/证书/localhost/certificate.crt')
       )
     },
     proxy: {

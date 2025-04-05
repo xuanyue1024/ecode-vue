@@ -8,6 +8,7 @@ export const generateUUID = () => {
 };
 
 // Convert a base64 string to an ArrayBuffer
+// 暂停使用
 export const base64ToArrayBuffer = (base64: string) => {
   const binary = atob(base64.replace(/-/g, "+").replace(/_/g, "/"));
   const len = binary.length;

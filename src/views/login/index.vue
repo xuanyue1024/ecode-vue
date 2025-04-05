@@ -93,7 +93,8 @@
 
 <script>
 import { login, registerByEmail, getEmailCode, getPasskeyVoucher } from '@/api/user'
-import { generateUUID, base64ToArrayBuffer } from '@/utils/tool';
+import { generateUUID } from '@/utils/tool';
+import { get, parseRequestOptionsFromJSON } from "@github/webauthn-json/browser-ponyfill";
 import md5 from 'md5'
 
 export default {
@@ -193,17 +194,11 @@ export default {
       // 检查 API 响应是否成功
       if (res.data.code === 200) {
         // 配置 WebAuthn 认证选项
-        const options = res.data.data; // 假设返回的数据中包含 WebAuthn 配置
-        //处理数据
-        options.publicKey.challenge = base64ToArrayBuffer(options.publicKey.challenge);
-        options.publicKey.allowCredentials = [];
-        console.log('处理好的数据', options)
+        const options = parseRequestOptionsFromJSON(res.data.data); 
 
         // 调用 WebAuthn API 进行认证
         try {
-          const credential = await navigator.credentials.get(options);
-          console.log('认证成功:', credential);
-          // 处理认证结果
+          const credential = await get(options);
           console.log('认证成功:', credential);
           // 发送到服务器进行验证
           const data = {
