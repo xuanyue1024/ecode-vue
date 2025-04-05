@@ -1,3 +1,7 @@
+// 最上面
+const fs = require('fs')
+const path = require('path')
+const https = require('https')
 const { defineConfig } = require('@vue/cli-service')
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin')
 module.exports = defineConfig({
@@ -5,9 +9,20 @@ module.exports = defineConfig({
   transpileDependencies: true,
 
   devServer: {
-    port: 80,
+    port: 443,
     open: false,
     hot: true,
+    // 域名设置
+    host: 'test.cn',
+    // https设置  E:/zs/www.qinxuehai.com-key.pem不能乱写是你上面下载证书路径跟你设置域名对应
+    https: {
+      key: fs.readFileSync(
+        path.resolve(__dirname, 'D:/biancode/证书/private.key')
+      ),
+      cert: fs.readFileSync(
+        path.resolve(__dirname, 'D:/biancode/证书/certificate.crt')
+      )
+    },
     proxy: {
       '/api': {
         target: process.env.VUE_APP_API_URL,

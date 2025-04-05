@@ -60,6 +60,12 @@ const router = new VueRouter({
           path: '/chat',
           name: 'chat',
           component: () => import('../views/chat/index.vue')
+        },
+        // 注册passkey
+        {
+          path: '/passkey',
+          name: 'passkey',
+          component: () => import('../views/main/passkey.vue')
         }
       ]
     },
