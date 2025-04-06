@@ -9,20 +9,20 @@ module.exports = defineConfig({
   transpileDependencies: true,
 
   devServer: {
-    port: 443,
+    port: 80,
     open: false,
     hot: true,
     // 域名设置
     // host: 'test.cn',
     // https设置  E:/zs/www.qinxuehai.com-key.pem不能乱写是你上面下载证书路径跟你设置域名对应
-    https: {
+    /* https: {
       key: fs.readFileSync(
         path.resolve(__dirname, 'D:/biancode/证书/localhost/private.key')
       ),
       cert: fs.readFileSync(
         path.resolve(__dirname, 'D:/biancode/证书/localhost/certificate.crt')
       )
-    },
+    }, */
     proxy: {
       '/api': {
         target: process.env.VUE_APP_API_URL,

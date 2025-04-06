@@ -9,7 +9,8 @@
             <el-table-column prop="credentialNickname" label="名称" width="120"></el-table-column>
             <el-table-column prop="credential.credentialId" label="ID"></el-table-column>
             <el-table-column prop="credential.signatureCount" label="使用次数" width="120"></el-table-column>
-            <el-table-column prop="registration" label="注册时间" width="300"></el-table-column>
+            <el-table-column prop="useTime" label="最后使用时间" width="200"></el-table-column>
+            <el-table-column prop="registrationTime" label="注册时间" width="200"></el-table-column>
             <el-table-column fixed="right" label="操作" width="120">
               <template slot-scope="scope">
                 <el-button @click="deletePasskey(scope.row.credential.credentialId)" type="text"
@@ -86,7 +87,7 @@ export default {
               this.$message.success('注册成功🎉🎉🎉')
               this.getPasskeyList();
             } else {
-              this.$message.error('注册失败')
+              this.$message.error(res.data.msg)
             }
           })
         }
