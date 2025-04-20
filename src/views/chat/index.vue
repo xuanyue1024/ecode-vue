@@ -37,12 +37,14 @@
 <script>
 import { marked } from 'marked'
 import { getUserInfo } from '@/api/user'
+import { createChatId } from '@/api/ai'
 import 'github-markdown-css/github-markdown.css'
 
 export default {
   name: 'ChatPage',
   data() {
     return {
+      chatId: '',
       messages: [],
       inputMessage: '',
       chatLoading: false,
@@ -53,6 +55,7 @@ export default {
   },
   created() {
     this.getUserDetails()
+    this.createAiChatId()
   },
   methods: {
     async getUserDetails() {
@@ -101,12 +104,14 @@ export default {
         const response = await fetch('/api/user/ai/chat', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'token': token
           },
           body: JSON.stringify({
-            aiAction: 'NEXT',
-            content: userMessage,
-            token: token || ''
+            chatId: this.chatId,
+            prompt: userMessage,
+            thinking: true,
+            search: true
           })
         })
 
@@ -184,6 +189,19 @@ export default {
         console.error('Markdown 渲染错误:', error)
         return content
       }
+    },
+    createAiChatId(){
+      const id = localStorage.getItem('chatId');
+      if (id) {
+        this.chatId = id;
+        return;
+      }
+      createChatId('chat').then(res => {
+        if(res.data.code === 200){
+          this.chatId = res.data.data;
+          window.localStorage.setItem('chatId', res.data.data)
+        }
+      })
     }
   }
 }

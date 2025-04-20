@@ -220,6 +220,7 @@ import 'vue-draggable-resizable-gorkys/dist/VueDraggableResizable.css'
 import { Diff2HtmlUI } from 'diff2html/lib/ui/js/diff2html-ui'
 import 'diff2html/bundles/css/diff2html.min.css'
 import { getUserInfo } from '@/api/user'
+import { createChatId } from '@/api/ai'
 
 export default {
   name: 'AcMonaco',
@@ -288,6 +289,7 @@ export default {
       },
       markedContent: '',  // 新增用于存储渲染后的markdown内容
       // AI 聊天相关
+      chatId: '',//ai聊天id
       showAiChat: false,
       messages: [],
       inputMessage: '',
@@ -376,6 +378,7 @@ export default {
 
     this.getProblemDetail()
     this.getUserDetails()
+    this.createAiChatId()
   },
   mounted() {
     this.init()
@@ -586,12 +589,14 @@ export default {
         const response = await fetch('/api/user/ai/chat', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'token': token
           },
           body: JSON.stringify({
-            aiAction: 'NEXT',
-            content: userMessage,
-            token: token || ''
+            chatId: this.chatId,
+            prompt: userMessage,
+            thinking: true,
+            search: true
           })
         })
 
@@ -789,6 +794,19 @@ export default {
       } catch (error) {
         console.error('获取用户信息失败:', error)
       }
+    },
+    createAiChatId(){
+      const id = localStorage.getItem('chatId');
+      if (id) {
+        this.chatId = id;
+        return;
+      }
+      createChatId('chat').then(res => {
+        if(res.data.code === 200){
+          this.chatId = res.data.data;
+          window.localStorage.setItem('chatId', res.data.data)
+        }
+      })
     }
   }
 }
