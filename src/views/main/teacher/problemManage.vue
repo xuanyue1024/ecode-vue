@@ -91,7 +91,7 @@
 </template>
 
 <script>
-import { getProblemPage, addProblem, updateProblem, deleteProblem, deleteProblems, setProblemTags } from '@/api/problem'
+import { getProblemPage, addProblem, updateProblem, deleteProblems, setProblemTags } from '@/api/problem'
 import { searchTags, addTag, getTagsByIds } from '@/api/tag'
 
 export default {
@@ -246,7 +246,7 @@ export default {
         type: 'warning'
       }).then(async () => {
         try {
-          const res = await deleteProblem(row.id)
+            const res = await deleteProblems([row.id])
           if (res.data.code === 200) {
             this.$message.success('删除成功')
             this.getProblemList()

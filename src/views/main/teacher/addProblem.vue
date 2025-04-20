@@ -53,6 +53,7 @@
                   placeholder="搜索已有标签或输入新标签"
                   :remote-method="remoteSearchTags"
                   :loading="tagsLoading"
+                  :popper-append-to-body="false"
                   value-key="name">
                   <el-option
                     v-for="item in tagOptions"
@@ -63,7 +64,7 @@
                 </el-select>
               </div>
             </div>
-            <div class="form-tip">添加合适的标签有助于学生快速了解题目类型和知识点</div>
+            <div class="form-tip">输入标签名称后按回车添加，或从下拉列表中选择已有标签</div>
           </el-form-item>
         </div>
 
@@ -312,6 +313,31 @@ export default {
     }
   },
   methods: {
+    async handleAddTag() {
+      this.$refs.tagForm.validate(async (valid) => {
+        if (valid) {
+          this.addingTag = true;
+          try {
+            const res = await addTag(this.tagForm.name);
+            if (res.data.code === 200) {
+              const newTag = { id: res.data.data, name: this.tagForm.name };
+              this.tagOptions.push(newTag);
+              this.form.tagIds.push(newTag);
+              this.$message.success('标签添加成功');
+              this.tagDialogVisible = false;
+              this.tagForm.name = ''; // 清空表单
+            } else {
+              this.$message.error(res.data.msg || '标签添加失败');
+            }
+          } catch (error) {
+            console.error('添加标签失败:', error);
+            this.$message.error('添加标签失败');
+          } finally {
+            this.addingTag = false;
+          }
+        }
+      });
+    },
     // 获取题目详情
     async getProblemDetail() {
       this.loading = true
@@ -342,6 +368,8 @@ export default {
           if (this.form.tagIds.length > 0) {
             const tagRes = await getTagsByIds(this.form.tagIds)
             if (tagRes.data.code === 200) {
+              // 转换为对象格式
+              this.form.tagIds = tagRes.data.data
               this.tagOptions = tagRes.data.data
             }
           }
@@ -366,6 +394,9 @@ export default {
           try {
             // 1. 先提交题目基本信息
             const formData = { ...this.form }
+            
+            // 处理标签，将标签对象数组转换为ID数组
+            const tagIds = formData.tagIds.map(tag => typeof tag === 'object' ? tag.id : tag)
             delete formData.tagIds // 移除标签信息，单独处理
             
             const res = this.isEdit
@@ -377,11 +408,11 @@ export default {
               const problemId = this.isEdit ? this.form.id : res.data.data
               
               // 3. 如果有标签，设置标签
-              if (this.form.tagIds && this.form.tagIds.length > 0) {
+              if (tagIds && tagIds.length > 0) {
                 try {
                   await setProblemTags({
                     problemId: problemId,
-                    tagIds: this.form.tagIds.map(tag => tag.id)
+                    tagIds: tagIds
                   })
                 } catch (error) {
                   console.error('设置标签失败:', error)
@@ -403,53 +434,63 @@ export default {
 
     // 标签相关方法
     handleSelectVisible(visible) {
-      if (!visible) {
-        this.tagOptions = []
+      if (visible) {
+        this.remoteSearchTags('')
       }
     },
-
     async handleTagChange(values) {
-      // 找出新添加的标签（字符串值）
-      const newTagValue = values.find(value => typeof value === 'string')
-      if (newTagValue) {
-        try {
-          const res = await addTag(newTagValue)
-          if (res.data.code === 200) {
-            const newTagId = res.data.data
-            // 更新标签列表
-            const newTag = { id: newTagId, name: newTagValue }
-            this.tagOptions = [...this.tagOptions, newTag]
-            // 更新选中的标签，移除字符串值，添加新的标签对象
-            this.form.tagIds = values
-              .filter(value => typeof value !== 'string')
-              .concat([newTag])
-            this.$message.success('创建标签成功')
+      // 检查新创建的标签（字符串类型）
+      const stringTags = values.filter(value => typeof value === 'string')
+      
+      if (stringTags.length > 0) {
+        const updatedValues = [...values]
+        
+        for (const tagName of stringTags) {
+          try {
+            const res = await addTag(tagName)
+            if (res.data.code === 200) {
+              const newTagId = res.data.data
+              const newTag = { id: newTagId, name: tagName }
+              
+              // 替换字符串为对象
+              const index = updatedValues.findIndex(v => v === tagName)
+              if (index !== -1) {
+                updatedValues[index] = newTag
+              }
+              
+              // 添加到选项中
+              this.tagOptions.push(newTag)
+              this.$message.success(`创建标签"${tagName}"成功`)
+            }
+          } catch (error) {
+            console.error('创建标签失败:', error)
+            this.$message.error(`创建标签"${tagName}"失败`)
+            
+            // 移除失败的标签
+            const index = updatedValues.findIndex(v => v === tagName)
+            if (index !== -1) {
+              updatedValues.splice(index, 1)
+            }
           }
-        } catch (error) {
-          console.error('创建标签失败:', error)
-          this.$message.error('创建标签失败')
         }
-      } else {
-        // 直接更新选中的标签
-        this.form.tagIds = values
+        
+        // 使用nextTick确保DOM更新完成后再设置值
+        this.$nextTick(() => {
+          this.form.tagIds = updatedValues
+        })
       }
     },
-
     async remoteSearchTags(query) {
-      if (query) {
-        this.tagsLoading = true
-        try {
-          const res = await searchTags(query)
-          if (res.data.code === 200) {
-            this.tagOptions = res.data.data
-          }
-        } catch (error) {
-          console.error('搜索标签失败:', error)
-        } finally {
-          this.tagsLoading = false
+      this.tagsLoading = true
+      try {
+        const res = await searchTags(query)
+        if (res.data.code === 200) {
+          this.tagOptions = res.data.data
         }
-      } else {
-        this.tagOptions = []
+      } catch (error) {
+        console.error('搜索标签失败:', error)
+      } finally {
+        this.tagsLoading = false
       }
     },
 
@@ -476,16 +517,13 @@ export default {
       const token = window.localStorage.getItem('token') || window.sessionStorage.getItem('token')
 
       try {
-        const response = await fetch('/api/user/ai/chat', {
-          method: 'POST',
+        const url = `/api/user/ai/generate?require=${encodeURIComponent(this.generatePrompt)}`;
+        const response = await fetch(url, {
+          method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            aiAction: 'NEXT',
-            content: 'problem_generate' + this.generatePrompt,
-            token: token
-          })
+            'Content-Type': 'application/json',
+            'token': token
+          }
         })
 
         const reader = response.body.getReader()
@@ -598,6 +636,24 @@ export default {
   border: 1px solid #ebeef5;
   transition: all 0.3s ease;
 }
+
+/* 修复标签选择下拉框 */
+:deep(.tag-input .el-select .el-select__tags) {
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+:deep(.el-select-dropdown__item) {
+  text-align: left;
+  padding: 8px 12px;
+}
+
+:deep(.el-select-dropdown) {
+  min-width: 200px !important;
+  width: auto !important;
+  max-width: 400px !important;
+}
+
 
 .form-section:hover {
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
@@ -767,6 +823,36 @@ export default {
   left: 0;
   height: 100% !important;
   width: 100% !important;
+}
+
+:deep(.v-note-wrapper .v-note-panel .v-note-edit.divarea-wrapper) {
+  background-color: #fff !important;
+}
+
+:deep(.v-note-wrapper .v-note-panel .v-note-edit .input-content) {
+  background-color: #fff !important;
+  color: #303133 !important;
+}
+
+/* Target the specific editor content area */
+:deep(.markdown-body) {
+  background-color: #fff !important;
+}
+
+:deep(.v-note-edit .auto-textarea-input) {
+  background-color: #fff !important;
+  color: #303133 !important;
+}
+
+:deep(.auto-textarea-block), 
+:deep(.auto-textarea-block textarea) {
+  background-color: #fff !important;
+  color: #303133 !important;
+}
+
+:deep(.v-note-edit textarea) {
+  background-color: #fff !important;
+  color: #303133 !important;
 }
 
 :deep(.v-note-wrapper.fullscreen .v-note-panel) {

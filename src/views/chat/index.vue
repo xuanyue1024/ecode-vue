@@ -108,6 +108,7 @@ export default {
             'token': token
           },
           body: JSON.stringify({
+            type: 'CHAT',
             chatId: this.chatId,
             prompt: userMessage,
             thinking: true,
