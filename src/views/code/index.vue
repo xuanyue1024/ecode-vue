@@ -109,25 +109,33 @@
       <el-container>
         <el-aside class="problem-aside" style="width: 400px;">
           <el-card class="problem-card" style="margin: 5px;" shadow="hover" v-loading="loading">
-            <div class="problem-content">
-              <div class="problem-header">
-                <h2 style="margin: 0; display: inline-block;">{{ problem.title }}</h2>
-            <el-tag :type="problem.grade === 'EASY' ? 'success' : problem.grade === 'GENERAL' ? 'warning' : 'danger'" 
-                       style="margin-left: 10px;">
-              {{ problem.grade === 'EASY' ? '简单' : problem.grade === 'GENERAL' ? '中等' : '困难' }}
-            </el-tag>
-              </div>
+            <div class="problem-header">
+              <h2 style="margin: 0; display: inline-block;">{{ problem.title }}</h2>
+              <el-tag :type="problem.grade === 'EASY' ? 'success' : problem.grade === 'GENERAL' ? 'warning' : 'danger'" 
+                     style="margin-left: 10px;">
+                {{ problem.grade === 'EASY' ? '简单' : problem.grade === 'GENERAL' ? '中等' : '困难' }}
+              </el-tag>
+            </div>
             
-            <div style="margin: 15px 0">
+            <div class="side-history-btn" @click="toggleHistoryView">
+              <el-tooltip :content="asideActiveView === 'problem' ? '查看提交历史' : '返回题目'" placement="left">
+                <i :class="asideActiveView === 'problem' ? 'el-icon-time' : 'el-icon-back'"></i>
+              </el-tooltip>
+            </div>
+            
+            <div v-if="asideActiveView === 'problem'" class="problem-scroll-container">
               <h3 style="margin-bottom: 10px">题目内容</h3>
-                <div class="markdown-body" v-html="markedContent"></div>
+              <div class="markdown-body" v-html="markedContent"></div>
             </div>
             
-              <!-- <div style="margin: 15px 0">
-              <h3 style="margin-bottom: 10px">题目要求</h3>
-              <p>{{ problem.require }}</p>
-              </div> -->
-            </div>
+            <submission-history 
+              v-else
+              :class-id="parseInt($route.query.classId || 0)" 
+              :class-problem-id="parseInt($route.query.classProblemId || 0)"
+              :current-language="codeEditorSetting.language"
+              @use-code="useHistoryCode"
+              style="text-align: left;"
+            />
           </el-card>
         </el-aside>
         <el-container>
@@ -191,7 +199,6 @@
         </el-container>
       </el-container>
     </el-container>
-
     <!-- 添加差异对比弹窗 -->
     <el-dialog
       title="详细对比结果"
@@ -207,7 +214,6 @@
     </el-dialog>
   </div>
 </template>
-
 <script>
 import * as monaco from 'monaco-editor'
 import { marked } from 'marked'
@@ -221,11 +227,13 @@ import { Diff2HtmlUI } from 'diff2html/lib/ui/js/diff2html-ui'
 import 'diff2html/bundles/css/diff2html.min.css'
 import { getUserInfo } from '@/api/user'
 import { createChatId } from '@/api/ai'
+import SubmissionHistory from './SubmissionHistory.vue'
 
 export default {
   name: 'AcMonaco',
   components: {
-    VueDraggableResizable
+    VueDraggableResizable,
+    SubmissionHistory,
   },
   props: {
     opts: {
@@ -238,6 +246,7 @@ export default {
   data() {
     return {
       activeIndex2: 'code',
+      asideActiveView: 'problem', // 新增: 控制侧边栏显示内容
       // 主要配置
       defaultOpts: {
         value: `public class Main {
@@ -248,7 +257,7 @@ export default {
         theme: 'vs', // 编辑器主题：vs, hc-black, or vs-dark，更多选择详见官网
         roundedSelection: true, // 选中圆角
         autoIndent: true, // 自动缩进
-        language: 'java',
+        language: 'java', // 自动缩进
         automaticLayout: true, // 自动布局
         minimap: {
           enabled: true // 是否启用预览图
@@ -285,7 +294,7 @@ export default {
         title: '',
         grade: '',
         content: '',
-        require: ''
+        require: '',
       },
       markedContent: '',  // 新增用于存储渲染后的markdown内容
       // AI 聊天相关
@@ -298,7 +307,7 @@ export default {
       testResult: {
         passCount: 0,
         score: 0,
-        diff: []
+        diff: [],
       },
       codeRunForm: { // 提交代码表单
         code: '',
@@ -365,9 +374,7 @@ export default {
         return result;
       }
     };
-
     marked.use({ renderer });
-    
     // 设置基本配置
     marked.setOptions({
       gfm: true,
@@ -375,7 +382,6 @@ export default {
       sanitize: false,
       smartLists: true
     });
-
     this.getProblemDetail()
     this.getUserDetails()
     this.createAiChatId()
@@ -384,7 +390,6 @@ export default {
     this.init()
     // 注册自定义语言
     monaco.languages.register({id: 'customLang'})
-
     // 定义语法高亮规则
     monaco.languages.setMonarchTokensProvider('customLang', {
       tokenizer: {
@@ -421,7 +426,6 @@ export default {
       this.monacoEditor.onDidChangeModelContent(() => {
         this.$emit('change', this.monacoEditor.getValue())
       })
-      
       // 添加右键菜单项
       this.monacoEditor.addAction({
         id: 'ask-ai-perf',
@@ -431,11 +435,9 @@ export default {
         run: (editor) => {
           const selection = editor.getSelection()
           const selectedText = editor.getModel().getValueInRange(selection)
-          
           if (selectedText) {
             // 打开 AI 聊天框
             this.showAiChat = true
-            
             // 等待 DOM 更新
             this.$nextTick(() => {
               // 设置输入消息并发送，添加代码框标记
@@ -451,7 +453,6 @@ export default {
           }
         }
       })
-
       // 添加修复bug的菜单项
       this.monacoEditor.addAction({
         id: 'ask-ai-fix',
@@ -461,7 +462,6 @@ export default {
         run: (editor) => {
           const selection = editor.getSelection()
           const selectedText = editor.getModel().getValueInRange(selection)
-          
           if (selectedText) {
             this.showAiChat = true
             this.$nextTick(() => {
@@ -476,7 +476,6 @@ export default {
           }
         }
       })
-
       // 添加解释代码的菜单项
       this.monacoEditor.addAction({
         id: 'ask-ai-annotation',
@@ -486,7 +485,6 @@ export default {
         run: (editor) => {
           const selection = editor.getSelection()
           const selectedText = editor.getModel().getValueInRange(selection)
-          
           if (selectedText) {
             this.showAiChat = true
             this.$nextTick(() => {
@@ -534,7 +532,6 @@ export default {
         this.$message.error('题目ID不能为空')
         return
       }
-
       this.loading = true
       try {
         const res = await getStudentProblemDetail(problemId)
@@ -565,42 +562,36 @@ export default {
         this.$message.warning('请输入消息')
         return
       }
-
       // 添加用户消息
       this.messages.push({
         role: 'user',
         content: this.inputMessage
       })
-      
       const userMessage = this.inputMessage
       this.inputMessage = ''
       this.chatLoading = true
-
       try {
         // 添加 AI 回复消息
         this.messages.push({
           role: 'assistant',
-          content: ''
+          content: '',
         })
-
         const token = window.localStorage.getItem('token') || window.sessionStorage.getItem('token')
-        
         // 创建 POST 请求
         const response = await fetch('/api/user/ai/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'token': token
+            'token': token,
           },
           body: JSON.stringify({
             type: 'CODE',
             chatId: this.chatId,
             prompt: userMessage,
             thinking: true,
-            search: true
+            search: true,
           })
         })
-
         // 获取响应的 reader
         const reader = response.body?.getReader()
         if (!reader) {
@@ -608,7 +599,6 @@ export default {
         }
         const decoder = new TextDecoder('utf-8')
         let buffer = ''
-        
         let isReading = true
         while (isReading) {
           const { done, value } = await reader.read()
@@ -616,15 +606,12 @@ export default {
             isReading = false
             break
           }
-
           // 解码响应数据
           const chunk = decoder.decode(value, { stream: true })
           buffer += chunk
-          
           // 处理完整的行
           const lines = buffer.split('\n')
           buffer = lines.pop() || ''
-          
           for (const line of lines) {
             if (line.startsWith('data:')) {
               try {
@@ -640,7 +627,6 @@ export default {
             }
           }
         }
-
         if (buffer.length > 0) {
           const lines = buffer.split('\n')
           for (const line of lines) {
@@ -658,10 +644,8 @@ export default {
             }
           }
         }
-
         decoder.decode()
         this.chatLoading = false
-
       } catch (error) {
         console.error('Error:', error)
         this.$message.error('发送消息失败')
@@ -687,7 +671,6 @@ export default {
       console.log('开始提交代码')
       this.isSubmitLoad = true
       this.isSubmitDisabled = true
-      
       const formData = {
         code: this.getVal(),
         type: this.codeEditorSetting.language,
@@ -695,9 +678,7 @@ export default {
         classId: parseInt(this.$route.query.classId || 0),
         classProblemId: parseInt(this.$route.query.classProblemId || 0)
       }
-
       console.log('提交的数据:', formData)
-
       runCode(formData)
         .then(res => {
           console.log('收到响应:', res)
@@ -707,20 +688,18 @@ export default {
               score: res.data.data.score || 0,
               diff: res.data.data.diff || []
             }
-            
             this.activeTab = 'test'
-            
             if (this.testResult.passCount === 4) {
               this.$notify({
                 title: '成功',
                 message: '恭喜！所有测试用例通过',
-                type: 'success'
+                type: 'success',
               })
             } else {
               this.$notify({
                 title: '提示',
                 message: `通过 ${this.testResult.passCount}/4 个测试用例`,
-                type: 'warning'
+                type: 'warning',
               })
             }
           } else {
@@ -752,7 +731,6 @@ export default {
         })
       })
     },
-    
     // 渲染差异对比
     renderDiff2Html(diff, index) {
       const configuration = {
@@ -769,18 +747,15 @@ export default {
         maxLineLengthHighlight: 10000,
         diffStyle: 'word'  // 使用单词级别的差异对比
       }
-      
       // 获取对应的容器
       const container = this.$refs['diffContainer' + index][0]
       // 清空容器
       container.innerHTML = ''
-      
       // 创建新的差异渲染实例
       const diffHtml = new Diff2HtmlUI(container, diff, configuration)
       diffHtml.draw()
       diffHtml.highlightCode()
     },
-    
     // 关闭差异对比弹窗
     handleCloseDiffDialog() {
       this.diffDialogVisible = false
@@ -808,11 +783,34 @@ export default {
           window.localStorage.setItem('chatId', res.data.data)
         }
       })
+    },
+    // 使用历史提交的代码
+    useHistoryCode({ code, language }) {
+      this.monacoEditor.setValue(code)
+      // 如果语言不同，更新语言设置
+      if (language !== this.codeEditorSetting.language) {
+        this.codeEditorSetting.language = language
+        this.monacoEditor.updateOptions({ language: this.getMonacoLanguage(language) })
+      }
+    },
+    // 获取Monaco编辑器对应的语言
+    getMonacoLanguage(language) {
+      const languageMap = {
+        'java': 'java',
+        'python3': 'python',
+        'cpp': 'cpp',
+        'nodejs': 'javascript',
+        'go': 'go',
+      }
+      return languageMap[language] || language
+    },
+    // 切换历史视图
+    toggleHistoryView() {
+      this.asideActiveView = this.asideActiveView === 'problem' ? 'history' : 'problem'
     }
   }
 }
 </script>
-
 <style>
 /* GitHub Markdown 样式覆盖 */
 .markdown-body {
@@ -822,29 +820,54 @@ export default {
   padding: 0 !important;
   background-color: transparent !important;
 }
-
 /* 题目区域的基础样式 */
 .problem-content {
   height: 100%;
   overflow-y: auto;
   padding-right: 16px;
   padding-left: 16px;
+  text-align: left !important;
+}
+
+/* 添加题目内容滚动容器 */
+.problem-scroll-container {
+  margin: 15px 0;
   text-align: left;
+  height: calc(100% - 60px);
+  overflow-y: auto;
+  padding-right: 5px;
 }
 
-.problem-content p {
-  margin: 8px 0;
-  line-height: 1.5;
+.problem-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  margin: 5px;
+  position: relative;
 }
 
-.problem-content h2 {
-  margin: 12px 0;
-  line-height: 1.5;
+.problem-card .el-card__body {
+  height: 100%;
+  overflow: hidden;
+  padding: 8px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
 }
 
-.problem-content h3 {
-  margin: 10px 0;
-  line-height: 1.5;
+/* 添加滚动条美化样式 */
+.problem-scroll-container::-webkit-scrollbar {
+  width: 4px;
+  background: transparent;
+}
+
+.problem-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+}
+
+.problem-scroll-container:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
 }
 
 /* 基础布局样式 */
@@ -854,35 +877,32 @@ html, body {
   height: 100%;
   overflow: hidden;
 }
-
 .code {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
 }
-
 .el-container {
   height: 100%;
   width: 100%;
 }
-
 .problem-aside {
   height: calc(100vh - 60px);
   overflow: hidden;
   flex-shrink: 0;
 }
-
 .problem-card {
   height: 100%;
   display: flex;
   flex-direction: column;
   margin: 5px;
+  position: relative;
 }
-
 .problem-card .el-card__body {
   height: 100%;
   overflow: hidden;
   padding: 8px;
+  text-align: left;
 }
 
 /* 右侧容器样式 */
@@ -1691,7 +1711,7 @@ html, body {
   background-color: inherit;
 }
 
-/* 确保弹窗内容不会溢出 */
+/* 确确保弹窗内容不会溢出 */
 .el-dialog {
   margin: 0 auto !important;
   max-width: 1400px;
@@ -1725,4 +1745,38 @@ html, body {
   width: 100%;
   height: 100%;
 }
+
+/* 添加的新样式 */
+.side-history-btn {
+  position: absolute;
+  right: 15px;
+  top: 15px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #409EFF;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.side-history-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  background: #66b1ff;
+}
+
+.side-history-btn i {
+  font-size: 20px;
+}
+
+.problem-menu {
+  display: none;
+}
 </style>
+
