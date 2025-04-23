@@ -113,13 +113,16 @@
           <el-table-column prop="title" label="题目标题"></el-table-column>
           <el-table-column label="标签" width="200">
             <template slot-scope="scope">
-              <el-tag 
-                v-for="tagId in scope.row.tagIds" 
-                :key="tagId"
-                size="small"
-                style="margin-right: 5px">
-                {{ tagCache.get(tagId) || '加载中...' }}
-              </el-tag>
+              <template v-if="scope.row.tagIds && scope.row.tagIds.length > 0">
+                <el-tag 
+                  v-for="tagId in scope.row.tagIds" 
+                  :key="tagId"
+                  size="small"
+                  style="margin-right: 5px">
+                  {{ tagCache.get(tagId) || (tagLoading ? '加载中...' : '未知标签') }}
+                </el-tag>
+              </template>
+              <span v-else>无标签</span>
             </template>
           </el-table-column>
           <el-table-column prop="grade" label="难度" width="100">
@@ -175,13 +178,16 @@
             <el-table-column prop="title" label="题目标题"></el-table-column>
             <el-table-column label="标签" width="200">
               <template slot-scope="scope">
-                <el-tag 
-                  v-for="tagId in scope.row.tagIds" 
-                  :key="tagId"
-                  size="small"
-                  style="margin-right: 5px">
-                  {{ tagCache.get(tagId) || '加载中...' }}
-                </el-tag>
+                <template v-if="scope.row.tagIds && scope.row.tagIds.length > 0">
+                  <el-tag 
+                    v-for="tagId in scope.row.tagIds" 
+                    :key="tagId"
+                    size="small"
+                    style="margin-right: 5px">
+                    {{ tagCache.get(tagId) || (tagLoading ? '加载中...' : '未知标签') }}
+                  </el-tag>
+                </template>
+                <span v-else>无标签</span>
               </template>
             </el-table-column>
             <el-table-column prop="grade" label="难度" width="100">
@@ -275,7 +281,8 @@ export default {
         pageSize: 10,
         name: ''
       },
-      tagCache: new Map()
+      tagCache: new Map(),
+      tagLoading: false
     }
   },
   created() {
@@ -307,10 +314,10 @@ export default {
     },
     resetSearch() {
       this.searchForm = {
-    pageNo: 1,
-    pageSize: 10,
-    name: ''
-  }
+        pageNo: 1,
+        pageSize: 10,
+        name: ''
+      }
       this.getClassList()
     },
     handleClassSelectionChange(val) {
@@ -383,18 +390,52 @@ export default {
       })
     },
     handleSizeChange(val) {
-    this.searchForm.pageSize = val
-    this.getClassList()
+      this.searchForm.pageSize = val
+      this.getClassList()
     },
     handleCurrentChange(val) {
       this.searchForm.pageNo = val
       this.getClassList()
     },
-    handleProblemManage(row) {
+    async handleProblemManage(row) {
       this.currentClass = row
       this.problemQuery.classId = row.id
       this.problemDialogVisible = true
+      
+      // 直接加载班级题目
       this.queryProblems()
+    },
+    async loadTagsForProblems(problems) {
+      if (!problems || problems.length === 0) return
+      
+      this.tagLoading = true
+      const tagIdsToLoad = []
+      problems.forEach(problem => {
+        if (problem.tagIds && problem.tagIds.length > 0) {
+          problem.tagIds.forEach(tagId => {
+            if (!this.tagCache.has(tagId) && !tagIdsToLoad.includes(tagId)) {
+              tagIdsToLoad.push(tagId)
+            }
+          })
+        }
+      })
+      
+      if (tagIdsToLoad.length > 0) {
+        try {
+          const tagRes = await getTagsByIds(tagIdsToLoad)
+          if (tagRes.data.code === 200) {
+            tagRes.data.data.forEach(tag => {
+              this.tagCache.set(tag.id, tag.name)
+            })
+          }
+        } catch (error) {
+          console.error('加载标签失败:', error)
+        } finally {
+          this.tagLoading = false
+        }
+      } else {
+        this.tagLoading = false
+      }
     },
     async queryProblems() {
       this.problemLoading = true
@@ -404,24 +445,7 @@ export default {
           this.problemRecords = res.data.data.records
           this.problemTotal = res.data.data.total
           
-          // 获取所有题目的标签ID
-          const tagIds = []
-          this.problemRecords.forEach(problem => {
-            if (problem.tagIds && problem.tagIds.length > 0) {
-              tagIds.push(...problem.tagIds)
-            }
-          })
-          
-          // 批量获取标签名称
-          if (tagIds.length > 0) {
-            const tagRes = await getTagsByIds(tagIds)
-            if (tagRes.data.code === 200) {
-              // 更新标签缓存
-              tagRes.data.data.forEach(tag => {
-                this.tagCache.set(tag.id, tag.name)
-              })
-            }
-          }
+          this.loadTagsForProblems(this.problemRecords)
         } else {
           this.$message.error(res.data.msg || '获取题目列表失败')
         }
@@ -459,24 +483,7 @@ export default {
           this.availableProblems = res.data.data.records
           this.addProblemTotal = res.data.data.total
           
-          // 获取所有题目的标签ID
-          const tagIds = []
-          this.availableProblems.forEach(problem => {
-            if (problem.tagIds && problem.tagIds.length > 0) {
-              tagIds.push(...problem.tagIds)
-            }
-          })
-          
-          // 批量获取标签名称
-          if (tagIds.length > 0) {
-            const tagRes = await getTagsByIds(tagIds)
-            if (tagRes.data.code === 200) {
-              // 更新标签缓存
-              tagRes.data.data.forEach(tag => {
-                this.tagCache.set(tag.id, tag.name)
-              })
-            }
-          }
+          this.loadTagsForProblems(this.availableProblems)
         } else {
           this.$message.error(res.data.msg || '获取可添加题目列表失败')
         }
@@ -486,9 +493,6 @@ export default {
       } finally {
         this.addProblemLoading = false
       }
-    },
-    handleAddSelectionChange(val) {
-      this.selectedProblemsToAdd = val
     },
     resetAddProblemSearch() {
       this.addProblemQuery.name = ''
@@ -501,6 +505,9 @@ export default {
     handleAddProblemCurrentChange(val) {
       this.addProblemQuery.pageNo = val
       this.searchProblemsToAdd()
+    },
+    handleAddSelectionChange(val) {
+      this.selectedProblemsToAdd = val
     },
     async confirmAddProblems() {
       if (this.selectedProblemsToAdd.length === 0) {
@@ -664,7 +671,6 @@ export default {
 /* 分页样式 */
 .pagination {
   margin-top: 20px;
-  padding: 16px 20px;
   text-align: right;
   background-color: #fff;
   border-radius: 0 0 8px 8px;
@@ -690,6 +696,11 @@ export default {
   border-top: 1px solid #ebeef5;
 }
 
+/* 加载状态样式 */
+.el-loading-mask {
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
 /* 题目管理对话框 */
 .problem-list {
   padding: 0 20px;
@@ -697,8 +708,6 @@ export default {
 
 .operation-bar {
   margin-bottom: 20px;
-  padding: 16px 0;
-  border-bottom: 1px solid #ebeef5;
 }
 
 .add-problem-dialog {
