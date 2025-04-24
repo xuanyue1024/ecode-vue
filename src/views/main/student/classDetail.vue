@@ -153,12 +153,18 @@
 
             <el-table :data="problemList" v-loading="problemLoading" stripe>
               <el-table-column prop="id" label="ID" width="80"></el-table-column>
-              <el-table-column prop="classProblemId" label="班级题目ID" width="100"></el-table-column>
               <el-table-column prop="title" label="题目标题"></el-table-column>
               <el-table-column prop="grade" label="难度" width="100">
                 <template slot-scope="scope">
                   <el-tag :type="scope.row.grade === 'EASY' ? 'success' : scope.row.grade === 'GENERAL' ? 'warning' : 'danger'">
                     {{ scope.row.grade === 'EASY' ? '简单' : scope.row.grade === 'GENERAL' ? '中等' : '困难' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="标签" width="300">
+                <template slot-scope="scope">
+                  <el-tag v-for="tag in scope.row.tags" :key="tag.id" size="small" style="margin-right: 5px">
+                    {{ tag.name }}
                   </el-tag>
                 </template>
               </el-table-column>
@@ -168,8 +174,6 @@
                   {{ scope.row.passRate ? (scope.row.passRate * 100).toFixed(1) + '%' : '0%' }}
                 </template>
               </el-table-column>
-              <el-table-column prop="createTime" label="创建时间" width="150"></el-table-column>
-              <el-table-column prop="updateTime" label="更新时间" width="150"></el-table-column>
               <el-table-column label="状态" width="100">
                 <template slot-scope="scope">
                   <el-tag :type="scope.row.status === 'COMPLETED' ? 'success' : 'info'">
@@ -179,7 +183,6 @@
               </el-table-column>
               <el-table-column label="操作" width="150" fixed="right">
                 <template slot-scope="scope">
-                  <el-button type="text" @click="handleViewProblem(scope.row)">查看</el-button>
                   <el-button 
                     type="primary" 
                     size="small"
@@ -214,7 +217,7 @@
                   <v-chart 
                     ref="scoreChart" 
                     :options="chartOptions" 
-                    style="width: 100%; height: 400px;"
+                    style="width: 100%; height: 400px;" 
                     autoresize>
                   </v-chart>
                 </div>
@@ -231,6 +234,7 @@
 import { getClassMembers, getStudentClassProblemPage, getClassProblemInfo } from '@/api/class'
 import { getUserInfo } from '@/api/user'
 import { getStudentStatistic } from '@/api/statistic'
+import { getStudentTagsByIds } from '@/api/tag'
 import ECharts from 'vue-echarts'
 import 'echarts/lib/chart/bar'
 import 'echarts/lib/component/tooltip'
@@ -364,7 +368,6 @@ export default {
           const scores = values.score.split(',').map(Number)
           const submits = values.submit.split(',').map(Number)
           const passes = values.pass.split(',').map(Number)
-          
           this.chartOptions = {
             ...this.chartOptions,
             xAxis: {
@@ -439,20 +442,32 @@ export default {
             problems.map(async (problem) => {
               try {
                 const infoRes = await getClassProblemInfo(problem.classProblemId)
-                if (infoRes.data.code === 200) {
-                  return {
-                    ...problem,
-                    submitCount: infoRes.data.data.submitNumber,
-                    passRate: infoRes.data.data.passNumber / (infoRes.data.data.submitNumber || 1),
-                    status: infoRes.data.data.score === 4 ? 'COMPLETED' : 'UNCOMPLETED',
-                    createTime: infoRes.data.data.createTime,
-                    updateTime: infoRes.data.data.updateTime
+                let updatedProblem = {
+                  ...problem,
+                  submitCount: infoRes.data.data.submitNumber,
+                  passRate: infoRes.data.data.passNumber / (infoRes.data.data.submitNumber || 1),
+                  status: infoRes.data.data.score === 4 ? 'COMPLETED' : 'UNCOMPLETED',
+                  createTime: infoRes.data.data.createTime,
+                  updateTime: infoRes.data.data.updateTime,
+                  tags: []
+                }
+                
+                // 单独获取标签信息
+                if (problem.tagIds && problem.tagIds.length > 0) {
+                  try {
+                    const tagRes = await getStudentTagsByIds(problem.tagIds)
+                    if (tagRes.data.code === 200) {
+                      updatedProblem.tags = tagRes.data.data
+                    }
+                  } catch (tagError) {
+                    console.error('获取题目标签失败:', tagError)
                   }
                 }
-                return problem
+                
+                return updatedProblem
               } catch (error) {
                 console.error('获取题目作答情况失败:', error)
-                return problem
+                return { ...problem, tags: [] }
               }
             })
           )
@@ -476,15 +491,6 @@ export default {
     handleProblemCurrentChange(val) {
       this.problemQuery.pageNo = val
       this.queryProblems()
-    },
-    // 查看题目详情
-    handleViewProblem(problem) {
-      this.$router.push({
-        path: `/problem/${problem.id}`,
-        query: {
-          classId: this.$route.params.id
-        }
-      })
     },
     // 开始做题
     handleStartProblem(problem) {

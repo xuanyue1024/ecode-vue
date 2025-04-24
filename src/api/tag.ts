@@ -10,4 +10,8 @@ export const addTag = (name: string) =>
 
 // 根据id集合获取标签
 export const getTagsByIds = (ids: number[]) =>
-  getRequest(`/api/teacher/tag/getByIds?ids=${ids.join(',')}`) 
+  getRequest(`/api/teacher/tag/getByIds?ids=${ids.join(',')}`)
+
+// 学生端根据id集合获取标签
+export const getStudentTagsByIds = (ids: number[]) =>
+  getRequest(`/api/student/tag/getByIds?ids=${ids.join(',')}`)

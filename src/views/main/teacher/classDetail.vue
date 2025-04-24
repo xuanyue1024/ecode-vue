@@ -176,7 +176,6 @@
               @selection-change="handleProblemSelectionChange">
               <el-table-column type="selection" width="55"></el-table-column>
               <el-table-column prop="id" label="ID" width="80"></el-table-column>
-              <el-table-column prop="classProblemId" label="班级题目ID" width="100"></el-table-column>
               <el-table-column prop="title" label="题目标题"></el-table-column>
               <el-table-column prop="grade" label="难度" width="100">
                 <template slot-scope="scope">
@@ -185,7 +184,7 @@
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="标签" width="200">
+              <el-table-column label="标签" width="300">
                 <template slot-scope="scope">
                   <el-tag v-for="tag in scope.row.tags" :key="tag.id" size="small" style="margin-right: 5px">
                     {{ tag.name }}
@@ -196,7 +195,7 @@
               <el-table-column prop="updateTime" label="更新时间" width="150"></el-table-column>
               <el-table-column label="操作" width="200">
                 <template slot-scope="scope">
-                  <el-button type="text" @click="handleViewProblem(scope.row)">查看</el-button>
+                  <el-button type="text" @click="handleStartProblem(scope.row)">查看</el-button>
                   <el-button type="text" @click="handleEditProblem(scope.row)">编辑</el-button>
                 </template>
               </el-table-column>
@@ -689,12 +688,14 @@ export default {
         }
       })
     },
-    // 查看题目详情
-    handleViewProblem(problem) {
+    // 开始做题
+    handleStartProblem(problem) {
       this.$router.push({
-        path: `/problem/${problem.id}`,
+        path: '/code',
         query: {
-          classId: this.problemQuery.classId
+          problemId: problem.id,
+          classId: this.problemQuery.classId,
+          classProblemId: problem.classProblemId
         }
       })
     },
