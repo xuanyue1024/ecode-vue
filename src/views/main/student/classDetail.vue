@@ -675,6 +675,8 @@ export default {
   min-height: calc(100vh - 60px);
   box-sizing: border-box;
   width: calc(100% - 200px); /* 确保宽度正好是屏幕减去侧边栏的宽度 */
+  overflow-y: auto; /* 添加垂直滚动能力 */
+  height: calc(100vh - 60px); /* 设置固定高度以启用滚动 */
 }
 
 .content-section {
