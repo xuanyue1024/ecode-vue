@@ -152,6 +152,8 @@
             </div>
 
             <el-table :data="problemList" v-loading="problemLoading" stripe>
+              <el-table-column prop="id" label="ID" width="80"></el-table-column>
+              <el-table-column prop="classProblemId" label="班级题目ID" width="100"></el-table-column>
               <el-table-column prop="title" label="题目标题"></el-table-column>
               <el-table-column prop="grade" label="难度" width="100">
                 <template slot-scope="scope">
@@ -166,6 +168,8 @@
                   {{ scope.row.passRate ? (scope.row.passRate * 100).toFixed(1) + '%' : '0%' }}
                 </template>
               </el-table-column>
+              <el-table-column prop="createTime" label="创建时间" width="150"></el-table-column>
+              <el-table-column prop="updateTime" label="更新时间" width="150"></el-table-column>
               <el-table-column label="状态" width="100">
                 <template slot-scope="scope">
                   <el-tag :type="scope.row.status === 'COMPLETED' ? 'success' : 'info'">
@@ -440,7 +444,9 @@ export default {
                     ...problem,
                     submitCount: infoRes.data.data.submitNumber,
                     passRate: infoRes.data.data.passNumber / (infoRes.data.data.submitNumber || 1),
-                    status: infoRes.data.data.score === 4 ? 'COMPLETED' : 'UNCOMPLETED'
+                    status: infoRes.data.data.score === 4 ? 'COMPLETED' : 'UNCOMPLETED',
+                    createTime: infoRes.data.data.createTime,
+                    updateTime: infoRes.data.data.updateTime
                   }
                 }
                 return problem
@@ -662,6 +668,7 @@ export default {
   padding: 20px;
   min-height: calc(100vh - 60px);
   box-sizing: border-box;
+  width: calc(100% - 200px); /* 确保宽度正好是屏幕减去侧边栏的宽度 */
 }
 
 .content-section {
@@ -788,37 +795,4 @@ export default {
     grid-template-columns: 1fr;
   }
 }
-
-.user-info {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  padding: 0 8px;
-}
-
-.username {
-  margin: 0 8px;
-  font-size: 14px;
-  color: #606266;
-}
-
-.el-dropdown {
-  color: #606266;
-}
-
-.statistics-content {
-  padding: 20px;
-}
-
-.charts-container {
-  margin-top: 20px;
-}
-
-.chart-item {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
-}
-</style> 
+</style>

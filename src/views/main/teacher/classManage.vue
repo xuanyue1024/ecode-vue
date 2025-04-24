@@ -45,12 +45,11 @@
             {{ formatDate(scope.row.createTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="300">
+        <el-table-column label="操作" width="220">
           <template slot-scope="scope">
             <el-button type="text" @click="handleViewDetail(scope.row)">查看详情</el-button>
             <el-button type="text" @click="handleEdit(scope.row)">编辑</el-button>
             <el-button type="text" @click="handleDelete(scope.row)">删除</el-button>
-            <el-button type="text" @click="handleProblemManage(scope.row)">题目管理</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -82,142 +81,6 @@
         <el-button type="primary" @click="submitForm">确 定</el-button>
       </div>
     </el-dialog>
-
-    <!-- 题目管理对话框 -->
-    <el-dialog title="班级题目管理" :visible.sync="problemDialogVisible" width="1000px">
-      <div class="problem-list">
-        <!-- 操作按钮 -->
-        <div class="operation-bar">
-          <el-button type="primary" @click="handleAddProblems">批量添加题目</el-button>
-          <el-button type="danger" :disabled="!selectedProblems.length" @click="handleRemoveProblems">批量移除题目</el-button>
-        </div>
-        
-        <!-- 题目搜索 -->
-        <el-form :inline="true">
-          <el-form-item>
-            <el-input v-model="problemQuery.name" placeholder="请输入题目名称" clearable></el-input>
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" @click="queryProblems">搜索</el-button>
-            <el-button @click="resetProblemSearch">重置</el-button>
-          </el-form-item>
-        </el-form>
-
-        <!-- 题目表格 -->
-        <el-table 
-          :data="problemRecords" 
-          v-loading="problemLoading"
-          @selection-change="handleProblemSelectionChange">
-          <el-table-column type="selection" width="55"></el-table-column>
-          <el-table-column prop="id" label="ID" width="80"></el-table-column>
-          <el-table-column prop="title" label="题目标题"></el-table-column>
-          <el-table-column label="标签" width="200">
-            <template slot-scope="scope">
-              <template v-if="scope.row.tagIds && scope.row.tagIds.length > 0">
-                <el-tag 
-                  v-for="tagId in scope.row.tagIds" 
-                  :key="tagId"
-                  size="small"
-                  style="margin-right: 5px">
-                  {{ tagCache.get(tagId) || (tagLoading ? '加载中...' : '未知标签') }}
-                </el-tag>
-              </template>
-              <span v-else>无标签</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="grade" label="难度" width="100">
-            <template slot-scope="scope">
-              <el-tag :type="scope.row.grade === 'EASY' ? 'success' : scope.row.grade === 'GENERAL' ? 'warning' : 'danger'">
-                {{ scope.row.grade === 'EASY' ? '简单' : scope.row.grade === 'GENERAL' ? '中等' : '困难' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="createTime" label="创建时间" width="160"></el-table-column>
-          <el-table-column prop="updateTime" label="更新时间" width="160"></el-table-column>
-        </el-table>
-
-        <!-- 分页 -->
-        <div class="pagination">
-          <el-pagination
-            @size-change="handleProblemSizeChange"
-            @current-change="handleProblemCurrentChange"
-            :current-page="problemQuery.pageNo"
-            :page-sizes="[10, 20, 30, 50]"
-            :page-size="problemQuery.pageSize"
-            layout="total, sizes, prev, pager, next, jumper"
-            :total="problemTotal">
-          </el-pagination>
-        </div>
-      </div>
-
-      <!-- 添加题目对话框 -->
-      <el-dialog
-        title="添加题目"
-        :visible.sync="addProblemDialogVisible"
-        width="800px"
-        append-to-body>
-        <div class="add-problem-dialog">
-          <!-- 题目搜索 -->
-          <el-form :inline="true">
-            <el-form-item>
-              <el-input v-model="addProblemQuery.name" placeholder="请输入题目名称" clearable></el-input>
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" @click="searchProblemsToAdd">搜索</el-button>
-              <el-button @click="resetAddProblemSearch">重置</el-button>
-            </el-form-item>
-          </el-form>
-
-          <!-- 可选题目表格 -->
-          <el-table 
-            :data="availableProblems" 
-            v-loading="addProblemLoading"
-            @selection-change="handleAddSelectionChange">
-            <el-table-column type="selection" width="55"></el-table-column>
-            <el-table-column prop="id" label="ID" width="80"></el-table-column>
-            <el-table-column prop="title" label="题目标题"></el-table-column>
-            <el-table-column label="标签" width="200">
-              <template slot-scope="scope">
-                <template v-if="scope.row.tagIds && scope.row.tagIds.length > 0">
-                  <el-tag 
-                    v-for="tagId in scope.row.tagIds" 
-                    :key="tagId"
-                    size="small"
-                    style="margin-right: 5px">
-                    {{ tagCache.get(tagId) || (tagLoading ? '加载中...' : '未知标签') }}
-                  </el-tag>
-                </template>
-                <span v-else>无标签</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="grade" label="难度" width="100">
-              <template slot-scope="scope">
-                <el-tag :type="scope.row.grade === 'EASY' ? 'success' : scope.row.grade === 'GENERAL' ? 'warning' : 'danger'">
-                  {{ scope.row.grade === 'EASY' ? '简单' : scope.row.grade === 'GENERAL' ? '中等' : '困难' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <!-- 分页 -->
-          <div class="pagination">
-            <el-pagination
-              @size-change="handleAddProblemSizeChange"
-              @current-change="handleAddProblemCurrentChange"
-              :current-page="addProblemQuery.pageNo"
-              :page-sizes="[10, 20, 30, 50]"
-              :page-size="addProblemQuery.pageSize"
-              layout="total, sizes, prev, pager, next, jumper"
-              :total="addProblemTotal">
-            </el-pagination>
-          </div>
-        </div>
-        <div slot="footer" class="dialog-footer">
-          <el-button @click="addProblemDialogVisible = false">取 消</el-button>
-          <el-button type="primary" @click="confirmAddProblems">确 定</el-button>
-        </div>
-      </el-dialog>
-    </el-dialog>
   </div>
 </template>
 
@@ -226,13 +89,8 @@ import {
   addClass, 
   updateClass, 
   deleteClasses, 
-  getClassPage,
-  addProblemToClass,
-  removeProblemFromClass,
-  getClassProblemPage
+  getClassPage
 } from '@/api/class'
-import { getProblemPage } from '@/api/problem'
-import { getTagsByIds } from '@/api/tag'
 
 export default {
   name: 'ClassManage',
@@ -258,31 +116,7 @@ export default {
           { required: true, message: '请输入班级名称', trigger: 'blur' },
           { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
         ]
-      },
-      problemDialogVisible: false,
-      currentClass: null,
-      problemRecords: [],
-      selectedProblems: [],
-      problemTotal: 0,
-      problemLoading: false,
-      problemQuery: {
-        pageNo: 1,
-        pageSize: 10,
-        name: '',
-        classId: null
-      },
-      addProblemDialogVisible: false,
-      addProblemLoading: false,
-      availableProblems: [],
-      selectedProblemsToAdd: [],
-      addProblemTotal: 0,
-      addProblemQuery: {
-        pageNo: 1,
-        pageSize: 10,
-        name: ''
-      },
-      tagCache: new Map(),
-      tagLoading: false
+      }
     }
   },
   created() {
@@ -397,167 +231,6 @@ export default {
       this.searchForm.pageNo = val
       this.getClassList()
     },
-    async handleProblemManage(row) {
-      this.currentClass = row
-      this.problemQuery.classId = row.id
-      this.problemDialogVisible = true
-      
-      // 直接加载班级题目
-      this.queryProblems()
-    },
-    async loadTagsForProblems(problems) {
-      if (!problems || problems.length === 0) return
-      
-      this.tagLoading = true
-      const tagIdsToLoad = []
-      problems.forEach(problem => {
-        if (problem.tagIds && problem.tagIds.length > 0) {
-          problem.tagIds.forEach(tagId => {
-            if (!this.tagCache.has(tagId) && !tagIdsToLoad.includes(tagId)) {
-              tagIdsToLoad.push(tagId)
-            }
-          })
-        }
-      })
-      
-      if (tagIdsToLoad.length > 0) {
-        try {
-          const tagRes = await getTagsByIds(tagIdsToLoad)
-          if (tagRes.data.code === 200) {
-            tagRes.data.data.forEach(tag => {
-              this.tagCache.set(tag.id, tag.name)
-            })
-          }
-        } catch (error) {
-          console.error('加载标签失败:', error)
-        } finally {
-          this.tagLoading = false
-        }
-      } else {
-        this.tagLoading = false
-      }
-    },
-    async queryProblems() {
-      this.problemLoading = true
-      try {
-        const res = await getClassProblemPage(this.problemQuery)
-        if (res.data.code === 200) {
-          this.problemRecords = res.data.data.records
-          this.problemTotal = res.data.data.total
-          
-          this.loadTagsForProblems(this.problemRecords)
-        } else {
-          this.$message.error(res.data.msg || '获取题目列表失败')
-        }
-      } catch (error) {
-        console.error('获取题目列表错误:', error)
-        this.$message.error('获取题目列表失败')
-      } finally {
-        this.problemLoading = false
-      }
-    },
-    resetProblemSearch() {
-      this.problemQuery.name = ''
-      this.queryProblems()
-    },
-    handleProblemSizeChange(val) {
-      this.problemQuery.pageSize = val
-      this.queryProblems()
-    },
-    handleProblemCurrentChange(val) {
-      this.problemQuery.pageNo = val
-      this.queryProblems()
-    },
-    handleProblemSelectionChange(val) {
-      this.selectedProblems = val
-    },
-    handleAddProblems() {
-      this.addProblemDialogVisible = true
-      this.searchProblemsToAdd()
-    },
-    async searchProblemsToAdd() {
-      this.addProblemLoading = true
-      try {
-        const res = await getProblemPage(this.addProblemQuery)
-        if (res.data.code === 200) {
-          this.availableProblems = res.data.data.records
-          this.addProblemTotal = res.data.data.total
-          
-          this.loadTagsForProblems(this.availableProblems)
-        } else {
-          this.$message.error(res.data.msg || '获取可添加题目列表失败')
-        }
-      } catch (error) {
-        console.error('获取可添加题目列表错误:', error)
-        this.$message.error('获取可添加题目列表失败')
-      } finally {
-        this.addProblemLoading = false
-      }
-    },
-    resetAddProblemSearch() {
-      this.addProblemQuery.name = ''
-      this.searchProblemsToAdd()
-    },
-    handleAddProblemSizeChange(val) {
-      this.addProblemQuery.pageSize = val
-      this.searchProblemsToAdd()
-    },
-    handleAddProblemCurrentChange(val) {
-      this.addProblemQuery.pageNo = val
-      this.searchProblemsToAdd()
-    },
-    handleAddSelectionChange(val) {
-      this.selectedProblemsToAdd = val
-    },
-    async confirmAddProblems() {
-      if (this.selectedProblemsToAdd.length === 0) {
-        this.$message.warning('请选择要添加的题目')
-        return
-      }
-
-      try {
-        const res = await addProblemToClass({
-          classId: this.currentClass.id,
-          problemIds: this.selectedProblemsToAdd.map(p => p.id)
-        })
-        if (res.data.code === 200) {
-          this.$message.success('添加题目成功')
-          this.addProblemDialogVisible = false
-          this.queryProblems()
-        } else {
-          this.$message.error(res.data.msg || '添加题目失败')
-        }
-      } catch (error) {
-        console.error('添加题目错误:', error)
-        this.$message.error('添加题目失败')
-      }
-    },
-    handleRemoveProblems() {
-      if (this.selectedProblems.length === 0) {
-        this.$message.warning('请选择要移除的题目')
-        return
-      }
-
-      this.$confirm('确定要移除选中的题目吗？', '提示', {
-        type: 'warning'
-      }).then(async () => {
-        try {
-          const res = await removeProblemFromClass({
-            classId: this.currentClass.id,
-            problemIds: this.selectedProblems.map(p => p.id)
-          })
-          if (res.data.code === 200) {
-            this.$message.success('移除题目成功')
-            this.queryProblems()
-          } else {
-            this.$message.error(res.data.msg || '移除题目失败')
-          }
-        } catch (error) {
-          console.error('移除题目错误:', error)
-          this.$message.error('移除题目失败')
-        }
-      })
-    },
     formatDate(timeStr) {
       if (!timeStr) return ''
       const date = new Date(timeStr)
@@ -578,11 +251,13 @@ export default {
       this.$message.success('邀请码已复制')
     },
     handleViewDetail(row) {
+      // 跳转到班级详情页面，并默认切换到"班级题目"标签
       this.$router.push({
         path: `/teacher/classDetail/${row.id}`,
         query: {
           name: row.name,
-          teacherName: this.userInfo ? this.userInfo.username : ''
+          teacherName: this.userInfo ? this.userInfo.username : '',
+          activeTab: 'problems' // 添加activeTab参数，用于在班级详情页面切换到班级题目标签
         }
       })
     }
@@ -699,21 +374,6 @@ export default {
 /* 加载状态样式 */
 .el-loading-mask {
   background-color: rgba(255, 255, 255, 0.8);
-}
-
-/* 题目管理对话框 */
-.problem-list {
-  padding: 0 20px;
-}
-
-.operation-bar {
-  margin-bottom: 20px;
-}
-
-.add-problem-dialog {
-  max-height: 600px;
-  overflow-y: auto;
-  padding: 0 20px;
 }
 
 /* 按钮样式 */

@@ -175,6 +175,8 @@
               v-loading="problemLoading"
               @selection-change="handleProblemSelectionChange">
               <el-table-column type="selection" width="55"></el-table-column>
+              <el-table-column prop="id" label="ID" width="80"></el-table-column>
+              <el-table-column prop="classProblemId" label="班级题目ID" width="100"></el-table-column>
               <el-table-column prop="title" label="题目标题"></el-table-column>
               <el-table-column prop="grade" label="难度" width="100">
                 <template slot-scope="scope">
@@ -190,6 +192,8 @@
                   </el-tag>
                 </template>
               </el-table-column>
+              <el-table-column prop="createTime" label="创建时间" width="150"></el-table-column>
+              <el-table-column prop="updateTime" label="更新时间" width="150"></el-table-column>
               <el-table-column label="操作" width="200">
                 <template slot-scope="scope">
                   <el-button type="text" @click="handleViewProblem(scope.row)">查看</el-button>
@@ -256,6 +260,7 @@
           v-loading="addProblemLoading"
           @selection-change="handleAddSelectionChange">
           <el-table-column type="selection" width="55"></el-table-column>
+          <el-table-column prop="id" label="ID" width="80"></el-table-column>
           <el-table-column prop="title" label="题目标题"></el-table-column>
           <el-table-column prop="grade" label="难度" width="100">
             <template slot-scope="scope">
@@ -264,6 +269,15 @@
               </el-tag>
             </template>
           </el-table-column>
+          <el-table-column label="标签" width="200">
+            <template slot-scope="scope">
+              <el-tag v-for="tag in scope.row.tags" :key="tag.id" size="small" style="margin-right: 5px">
+                {{ tag.name }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createTime" label="创建时间" width="150"></el-table-column>
+          <el-table-column prop="updateTime" label="更新时间" width="150"></el-table-column>
         </el-table>
 
         <div class="pagination">
@@ -426,7 +440,7 @@ export default {
   created() {
     // 从路由参数中获取班级ID和名称
     const { id } = this.$route.params
-    const { name, teacherName } = this.$route.query
+    const { name, teacherName, activeTab } = this.$route.query
     
     // 设置班级基本信息
     this.classInfo = {
@@ -438,6 +452,11 @@ export default {
     // 设置查询参数
     this.memberQuery.classId = id
     this.problemQuery.classId = id
+
+    // 如果有activeTab参数，则设置激活的菜单
+    if (activeTab) {
+      this.activeMenu = activeTab
+    }
 
     // 初始化数据
     this.initData()
@@ -576,8 +595,32 @@ export default {
       try {
         const res = await getProblemPage(this.addProblemQuery)
         if (res.data.code === 200) {
-          this.availableProblems = res.data.data.records
+          const problems = res.data.data.records
           this.addProblemTotal = res.data.data.total
+          
+          // 并行获取所有题目的标签
+          const problemsWithTags = await Promise.all(
+            problems.map(async (problem) => {
+              if (problem.tagIds && problem.tagIds.length > 0) {
+                try {
+                  const tagRes = await getTagsByIds(problem.tagIds)
+                  if (tagRes.data.code === 200) {
+                    problem.tags = tagRes.data.data
+                  } else {
+                    problem.tags = []
+                  }
+                } catch (error) {
+                  console.error('获取题目标签失败:', error)
+                  problem.tags = []
+                }
+              } else {
+                problem.tags = []
+              }
+              return problem
+            })
+          )
+
+          this.availableProblems = problemsWithTags
         }
       } catch (error) {
         console.error('获取可添加题目列表错误:', error)
@@ -725,13 +768,19 @@ export default {
 </script>
 
 <style scoped>
+/* 全局容器 */
 .class-detail-container {
   min-height: 100vh;
   background-color: #f5f7fa;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  position: relative;
+  padding: 0;
+  margin: 0;
 }
 
+/* 顶部导航 */
 .top-header {
   height: 60px;
   background-color: white;
@@ -802,11 +851,14 @@ export default {
   font-size: 14px;
 }
 
+/* 主内容区域 */
 .main-container {
-  margin-top: 60px;
+  margin-top: 0px; 
   flex: 1;
   display: flex;
   min-height: calc(100vh - 60px);
+  width: 100%;
+  position: relative;
 }
 
 .side-menu {
@@ -845,7 +897,7 @@ export default {
 
 .main-content {
   flex: 1;
-  margin-left: 200px;
+  margin-left: 0px;
   padding: 20px;
   min-height: calc(100vh - 60px);
   box-sizing: border-box;
@@ -957,7 +1009,7 @@ export default {
   }
 
   .main-content {
-    margin-left: 0;
+    width: 100%;
   }
 
   .search-box {
@@ -984,4 +1036,4 @@ export default {
   margin-bottom: 20px;
   box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
 }
-</style> 
+</style>

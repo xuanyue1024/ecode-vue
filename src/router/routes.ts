@@ -1,5 +1,4 @@
 import { RouteConfig } from 'vue-router'
-import Layout from '@/layout/index.vue'
 
 const routes: RouteConfig[] = [
   {
@@ -10,7 +9,7 @@ const routes: RouteConfig[] = [
   {
     path: '/',
     name: 'main',
-    component: Layout,
+    component: () => import('@/views/main/index.vue'),
     children: [
       // 教师：班级管理
       {
@@ -34,6 +33,12 @@ const routes: RouteConfig[] = [
         name: 'EditProblem',
         component: () => import('@/views/main/teacher/addProblem.vue')
       },
+      // 教师：班级详情
+      {
+        path: '/teacher/classDetail/:id',
+        name: 'teacherClassDetail',
+        component: () => import('@/views/main/teacher/classDetail.vue')
+      },
       // 学生：我的班级
       {
         path: '/myClass',
@@ -51,22 +56,12 @@ const routes: RouteConfig[] = [
         path: '/chat',
         name: 'chat',
         component: () => import('@/views/chat/index.vue')
-      }
-    ]
-  },
-  // 教师：班级详情（独立页面）
-  {
-    path: '/teacher/classDetail/:id',
-    name: 'TeacherClassDetail',
-    component: Layout,
-    children: [
+      },
+      // 注册passkey
       {
-        path: '',
-        component: () => import('@/views/main/teacher/classDetail.vue'),
-        meta: {
-          title: '班级详情',
-          roles: ['TEACHER']
-        }
+        path: '/passkey',
+        name: 'passkey',
+        component: () => import('@/views/main/passkey.vue')
       }
     ]
   },
@@ -81,7 +76,17 @@ const routes: RouteConfig[] = [
     path: '/code',
     name: 'code',
     component: () => import('@/views/code/index.vue')
+  },
+  {
+    path: '/about',
+    name: 'about',
+    component: () => import('@/views/AboutView.vue')
+  },
+  {
+    path: '/test',
+    name: 'test',
+    component: () => import('@/views/main/test.vue')
   }
 ]
 
-export default routes 
+export default routes
