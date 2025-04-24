@@ -9,25 +9,26 @@
             placeholder="请输入班级名称" 
             clearable 
             @keyup.enter.native="getClassList"
-            class="search-input">
+            class="search-input"
+            prefix-icon="el-icon-search">
           </el-input>
-          <el-button type="primary" @click="getClassList" :loading="loading">搜索</el-button>
-          <el-button @click="resetSearch">重置</el-button>
+          <el-button type="primary" @click="getClassList" :loading="loading" icon="el-icon-search">搜索</el-button>
+          <el-button @click="resetSearch" icon="el-icon-refresh">重置</el-button>
         </div>
         <div class="operation-wrapper">
-          <el-button type="primary" @click="handleAdd">新增班级</el-button>
-          <el-button type="danger" @click="handleBatchDelete" :disabled="selectedClasses.length === 0">批量删除</el-button>
+          <el-button type="primary" @click="handleAdd" icon="el-icon-plus">新增班级</el-button>
+          <el-button type="danger" @click="handleBatchDelete" :disabled="selectedClasses.length === 0" icon="el-icon-delete">批量删除</el-button>
         </div>
       </div>
     </el-card>
 
     <!-- 班级列表 -->
-    <el-card v-loading="loading">
+    <el-card v-loading="loading" class="table-card">
       <el-table
         :data="classList"
         @selection-change="handleClassSelectionChange"
-        border
         stripe
+        class="modern-table"
       >
         <el-table-column type="selection" width="55"></el-table-column>
         <el-table-column prop="name" label="班级名称"></el-table-column>
@@ -47,9 +48,9 @@
         </el-table-column>
         <el-table-column label="操作" width="220">
           <template slot-scope="scope">
-            <el-button type="text" @click="handleViewDetail(scope.row)">查看详情</el-button>
-            <el-button type="text" @click="handleEdit(scope.row)">编辑</el-button>
-            <el-button type="text" @click="handleDelete(scope.row)">删除</el-button>
+            <el-button type="text" @click="handleViewDetail(scope.row)" class="action-btn">查看详情</el-button>
+            <el-button type="text" @click="handleEdit(scope.row)" class="action-btn">编辑</el-button>
+            <el-button type="text" @click="handleDelete(scope.row)" class="action-btn danger">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -64,13 +65,14 @@
           :page-size="searchForm.pageSize"
           layout="total, sizes, prev, pager, next, jumper"
           :total="total"
+          background
         >
         </el-pagination>
       </div>
     </el-card>
 
     <!-- 新增/编辑班级对话框 -->
-    <el-dialog :title="dialogTitle" :visible.sync="dialogVisible" width="500px">
+    <el-dialog :title="dialogTitle" :visible.sync="dialogVisible" width="500px" custom-class="custom-dialog">
       <el-form :model="classForm" :rules="rules" ref="classForm" label-width="100px">
         <el-form-item label="班级名称" prop="name">
           <el-input v-model="classForm.name" placeholder="请输入班级名称"></el-input>
@@ -268,126 +270,191 @@ export default {
 <style scoped>
 .class-manage {
   height: 100%;
-  padding: 20px;
+  padding: 24px;
   background-color: #f5f7fa;
   box-sizing: border-box;
 }
 
 .header-card {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s;
 }
 
 .header-wrapper {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 .search-wrapper {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .search-input {
-  width: 240px;
+  width: 280px;
+}
+
+.search-input .el-input__inner {
+  border-radius: 8px;
+  height: 40px;
 }
 
 .operation-wrapper {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 /* 表格卡片样式 */
-.el-card {
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important;
+.table-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.3s;
 }
 
-/* 表格样式 */
-.el-table {
+.table-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* 现代表格样式 - 只有横线 */
+.modern-table {
   width: 100%;
   margin-top: 8px;
+  border: none !important;
 }
 
-.el-table th {
+/* 移除表格边框和竖线 */
+.modern-table ::v-deep .el-table__border-left-patch,
+.modern-table ::v-deep .el-table__border-bottom-patch {
+  display: none;
+}
+
+.modern-table ::v-deep th.is-leaf, 
+.modern-table ::v-deep td {
+  border-right: none !important;
+}
+
+.modern-table ::v-deep .el-table__border-right-patch {
+  display: none;
+}
+
+.modern-table ::v-deep .el-table__row {
+  transition: all 0.2s;
+}
+
+.modern-table ::v-deep .el-table__row:hover {
   background-color: #f5f7fa !important;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.modern-table ::v-deep th {
+  background-color: #f9fafc !important;
   color: #606266;
   font-weight: 600;
   font-size: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid #ebeef5 !important;
 }
 
-.el-table td {
-  padding: 12px 0;
+.modern-table ::v-deep td {
+  padding: 16px 0;
+  border-bottom: 1px solid #ebeef5 !important;
+}
+
+/* 去掉表格外边框 */
+.modern-table ::v-deep .el-table__fixed-right::before,
+.modern-table ::v-deep .el-table__fixed::before,
+.modern-table ::v-deep .el-table::before {
+  display: none;
+}
+
+.modern-table ::v-deep .el-table__cell {
+  padding: 16px 0;
 }
 
 /* 标签样式 */
 .el-tag {
   margin-right: 5px;
-  border-radius: 4px;
-}
-
-.el-tag--success {
-  background-color: #f0f9eb;
-}
-
-.el-tag--warning {
-  background-color: #fdf6ec;
-}
-
-.el-tag--danger {
-  background-color: #fef0f0;
+  border-radius: 6px;
+  padding: 0 12px;
+  height: 28px;
+  line-height: 26px;
 }
 
 /* 分页样式 */
 .pagination {
-  margin-top: 20px;
+  margin-top: 24px;
   text-align: right;
-  background-color: #fff;
-  border-radius: 0 0 8px 8px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  padding: 8px 0;
 }
 
 /* 对话框样式 */
-.el-dialog {
-  border-radius: 8px;
+.custom-dialog {
+  border-radius: 12px;
+  overflow: hidden;
 }
 
-.el-dialog__header {
-  padding: 20px;
+.custom-dialog ::v-deep .el-dialog__header {
+  padding: 24px;
   border-bottom: 1px solid #ebeef5;
+  background-color: #f9fafc;
 }
 
-.el-dialog__body {
-  padding: 24px 40px;
+.custom-dialog ::v-deep .el-dialog__body {
+  padding: 32px 40px;
 }
 
-.el-dialog__footer {
-  padding: 16px 20px;
+.custom-dialog ::v-deep .el-dialog__footer {
+  padding: 20px 24px;
   border-top: 1px solid #ebeef5;
-}
-
-/* 加载状态样式 */
-.el-loading-mask {
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: #f9fafc;
 }
 
 /* 按钮样式 */
-.el-button--text {
-  padding: 0 8px;
+.el-button {
+  border-radius: 8px;
+  padding: 10px 20px;
+  transition: all 0.3s;
 }
 
-.el-button--text + .el-button--text {
-  margin-left: 8px;
+.el-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.el-button--text {
+  padding: 0 8px;
+  border-radius: 4px;
+}
+
+.action-btn {
+  font-size: 14px;
+  color: #409EFF;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.action-btn:hover {
+  opacity: 0.8;
+  transform: none;
+  box-shadow: none;
+}
+
+.action-btn.danger {
+  color: #F56C6C;
 }
 
 /* 表单样式 */
 .el-form-item {
-  margin-bottom: 22px;
+  margin-bottom: 24px;
 }
 
 .el-form-item__label {
@@ -396,27 +463,32 @@ export default {
 
 /* 输入框样式 */
 .el-input {
-  width: 240px;
+  width: 100%;
 }
 
 .el-input__inner {
-  border-radius: 4px;
+  border-radius: 8px;
+  height: 40px;
+  transition: all 0.3s;
 }
 
-/* 加载状态样式 */
-.el-loading-mask {
-  background-color: rgba(255, 255, 255, 0.8);
+.el-input__inner:focus {
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
+/* 邀请码样式 */
 .invite-code {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .invite-code span {
-  font-family: monospace;
+  font-family: 'Monaco', monospace;
   color: #606266;
+  background-color: #f5f7fa;
+  padding: 4px 8px;
+  border-radius: 4px;
 }
 
 .copy-icon {
@@ -424,10 +496,14 @@ export default {
   cursor: pointer;
   font-size: 16px;
   transition: all 0.3s;
+  background-color: #ecf5ff;
+  padding: 6px;
+  border-radius: 50%;
 }
 
 .copy-icon:hover {
   color: #66b1ff;
   transform: scale(1.1);
+  background-color: #e0eeff;
 }
 </style>

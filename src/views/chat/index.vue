@@ -263,7 +263,7 @@ export default {
 }
 
 .chat-container {
-  width: 900px;
+  width: 1200px; /* 将宽度从900px增加到1200px */
   height: 100%;
   background: #fff;
   border-radius: 12px;
@@ -271,6 +271,7 @@ export default {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  max-width: 95%; /* 添加最大宽度比例，以确保在小屏幕上有合适的间距 */
 }
 
 .chat-header {
@@ -393,7 +394,7 @@ export default {
 }
 
 .chat-message .message-content {
-  max-width: 75%;
+  max-width: 85%; /* 将消息气泡最大宽度从75%增加到85% */
   padding: 16px 20px !important; /* 确保内边距不被覆盖 */
   border-radius: 16px;
   word-break: break-word;
@@ -582,5 +583,36 @@ export default {
 .message-fade-enter, .message-fade-leave-to {
   opacity: 0;
   transform: translateY(20px);
+}
+
+/* 添加媒体查询，使界面在不同屏幕尺寸下都有良好的表现 */
+@media (max-width: 1400px) {
+  .chat-container {
+    width: 1000px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .chat-container {
+    width: 95%;
+  }
+  
+  .chat-message .message-content {
+    max-width: 80%;
+  }
+}
+
+@media (max-width: 768px) {
+  .chat-page {
+    padding: 10px;
+  }
+  
+  .chat-message .message-content {
+    max-width: 75%;
+  }
+  
+  .chat-header h2 {
+    font-size: 16px;
+  }
 }
 </style>
