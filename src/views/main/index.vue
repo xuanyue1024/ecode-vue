@@ -60,8 +60,8 @@
           <span slot="title">AI 助手</span>
         </el-menu-item>
         <el-menu-item index="passkey" @click="$router.push('/passkey')">
-          <i class="el-icon-chat-dot-round"></i>
-          <span slot="title">注册Passkey(测试)</span>
+          <i class="el-icon-key"></i>
+          <span slot="title">通行密钥</span>
         </el-menu-item>
       </el-menu>
     </div>
