@@ -57,11 +57,13 @@
       <!-- 内容区域 -->
       <div class="main-content">
         <!-- 班级概览 -->
+        <!-- 班级概览部分更新 -->
         <div v-show="activeMenu === 'overview'" class="content-section">
           <el-card class="overview-card">
             <div class="overview-header">
               <h3>班级概览</h3>
             </div>
+
             <div class="overview-stats">
               <div class="stat-card">
                 <i class="el-icon-user"></i>
@@ -84,6 +86,24 @@
                   <div class="stat-label">已完成题目</div>
                 </div>
               </div>
+            </div>
+
+            <!-- 添加题目完成情况饼图 -->
+            <div class="chart-container">
+              <v-chart
+                :options="pieChartOptions"
+                style="width: 100%; height: 400px;"
+                autoresize>
+              </v-chart>
+            </div>
+
+            <!-- 添加提交情况条形图 -->
+            <div class="chart-container">
+              <v-chart
+                :options="barChartOptions"
+                style="width: 100%; height: 500px;"
+                autoresize>
+              </v-chart>
             </div>
           </el-card>
         </div>
@@ -235,12 +255,15 @@ import { getClassMembers, getStudentClassProblemPage, getClassProblemInfo } from
 import { getUserInfo } from '@/api/user'
 import { getStudentStatistic } from '@/api/statistic'
 import { getStudentTagsByIds } from '@/api/tag'
+import { getRequest } from '@/utils/request'
 import ECharts from 'vue-echarts'
 import 'echarts/lib/chart/bar'
 import 'echarts/lib/component/tooltip'
 import 'echarts/lib/component/title'
 import 'echarts/lib/component/legend'
 import 'echarts/lib/component/grid'
+import 'echarts/lib/chart/pie'
+import 'echarts/lib/chart/line'
 
 export default {
   name: 'ClassDetail',
@@ -338,6 +361,78 @@ export default {
             }
           }
         ]
+      },
+
+      // 饼图配置
+      pieChartOptions: {
+        title: {
+          text: '班级题目完成情况',
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'item',
+          formatter: '{b}: {c} ({d}%)'
+        },
+        legend: {
+          orient: 'vertical',
+          left: 'left'
+        },
+        series: [{
+          type: 'pie',
+          radius: '50%',
+          data: [],
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 10,
+              shadowOffsetX: 0,
+              shadowColor: 'rgba(0, 0, 0, 0.5)'
+            }
+          }
+        }]
+      },
+
+      // 条形图配置
+      barChartOptions: {
+        title: {
+          text: '学生提交情况统计',
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow'
+          }
+        },
+        legend: {
+          data: ['提交次数', '通过次数', '通过率'],
+          top: 30
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          data: [],
+          axisLabel: {
+            interval: 0,
+            rotate: 30
+          }
+        },
+        yAxis: [
+          {
+            type: 'value',
+            name: '次数'
+          },
+          {
+            type: 'value',
+            name: '通过率(%)',
+            max: 100
+          }
+        ],
+        series: []
       }
     }
   },
@@ -346,8 +441,53 @@ export default {
     this.problemQuery.classId = this.$route.params.id
     this.initData()
     this.getUserDetails()
+    this.loadOverviewData();
   },
   methods: {
+
+    async loadOverviewData() {
+      try {
+        // 获取题目完成情况
+        const completeRes = await getRequest(`/api/student/class/problem/complete/${this.$route.params.id}`);
+        if (completeRes.data.code === 200) {
+          const { totalProblems, completedProblems } = completeRes.data.data;
+          this.pieChartOptions.series[0].data = [
+            { name: '已完成', value: completedProblems },
+            { name: '未完成', value: totalProblems - completedProblems }
+          ];
+        }
+
+        // 获取提交情况
+        const submissionsRes = await getRequest(`/api/student/class/problem/submissions/${this.$route.params.id}`);
+        if (submissionsRes.data.code === 200) {
+          const submissions = submissionsRes.data.data;
+
+          this.barChartOptions.xAxis.data = submissions.map(item => item.studentName);
+          this.barChartOptions.series = [
+            {
+              name: '提交次数',
+              type: 'bar',
+              data: submissions.map(item => Number(item.totalSubmissions))
+            },
+            {
+              name: '通过次数',
+              type: 'bar',
+              data: submissions.map(item => Number(item.totalPasses))
+            },
+            {
+              name: '通过率',
+              type: 'line',
+              yAxisIndex: 1,
+              data: submissions.map(item => Number(item.passRate))
+            }
+          ];
+        }
+      } catch (error) {
+        console.error('获取概览数据失败:', error);
+        this.$message.error('获取概览数据失败');
+      }
+    },
+
     initData() {
       this.queryMembers()
       this.queryProblems()
@@ -536,11 +676,42 @@ export default {
     if (this.scoreChart) {
       this.scoreChart.dispose()
     }
-  }
+  },
+
 }
 </script>
 
 <style scoped>
+
+/* 修改用户信息区域的样式 */
+.user-info {
+  display: flex;
+  align-items: center;  /* 垂直居中对齐 */
+  padding: 5px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.user-info:hover {
+  background-color: #f5f7fa;
+}
+
+/* 修改用户名样式 */
+.username {
+  margin: 0 8px;  /* 保持左右间距 */
+  color: #606266;
+  font-size: 14px;
+  line-height: 32px;  /* 与头像高度保持一致 */
+}
+
+/* 修改下拉箭头样式 */
+.el-icon-caret-bottom {
+  font-size: 12px;
+  color: #909399;
+  line-height: 32px;  /* 与头像高度保持一致 */
+}
+
 .class-detail-container {
   min-height: 100vh;
   background-color: #f5f7fa;
@@ -700,12 +871,15 @@ export default {
   width: 300px;
 }
 
+/* 修改整个概览区域的间距 */
 .overview-card {
   margin-bottom: 20px;
+  padding: 24px;
 }
 
+/* 修改标题与统计卡片之间的间距 */
 .overview-header {
-  margin-bottom: 20px;
+  margin-bottom: 32px;  /* 增加与下方统计卡片的间距 */
 }
 
 .overview-header h3 {
@@ -714,19 +888,23 @@ export default {
   color: #303133;
 }
 
+/* 修改统计卡片区域的布局和间距 */
 .overview-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(3, 1fr);  /* 固定三列布局 */
+  gap: 24px;  /* 统一卡片之间的间距 */
+  margin-bottom: 40px;  /* 增加与下方图表的间距 */
 }
 
+/* 修改统计卡片的内部样式 */
 .stat-card {
   display: flex;
   align-items: center;
-  padding: 20px;
-  background-color: white;
+  padding: 24px;
+  background-color: #f8f9fb;  /* 更柔和的背景色 */
   border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease;
 }
 
 .stat-card i {
@@ -801,6 +979,21 @@ export default {
 
   .overview-stats {
     grid-template-columns: 1fr;
+  }
+
+  /* 修改图表容器的样式和间距 */
+  .chart-container {
+    margin-top: 40px;  /* 增加与上方元素的间距 */
+    margin-bottom: 40px;  /* 增加与下方元素的间距 */
+    padding: 24px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  /* 为最后一个图表容器移除底部边距 */
+  .chart-container:last-child {
+    margin-bottom: 0;
   }
 }
 </style>
