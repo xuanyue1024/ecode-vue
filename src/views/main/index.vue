@@ -96,6 +96,15 @@ export default {
     }
   },
   created() {
+    //激活页面
+    if (this.$store.state.userRole === 'STUDENT') {
+      this.activeIndex = 'myClass'
+      this.$router.push('/myClass')
+    } else if (this.$store.state.userRole === 'TEACHER') {
+      this.activeIndex = 'classManage'
+      this.$router.push('/classManage')
+    }
+
     this.getUserDetails()
   },
   methods: {
