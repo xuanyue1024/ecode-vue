@@ -53,6 +53,8 @@ class Program {
 }`
     } as const,
     username: '游客',
+    userRole: '' as string,
+    name: '' as string
   },
   getters: {
     getExampleCode: (state) => (language: keyof typeof state.exampleCode) => {
@@ -62,6 +64,12 @@ class Program {
   mutations: {
     setUserName(state,newName) {
       state.username = newName
+    },
+    setUserRole(state, newName) {
+      state.userRole = newName;
+    },
+    setName(state, newName) {
+      state.name = newName;
     }
   },
   actions: {

@@ -16,7 +16,7 @@
               :src="userInfo.profilePicture"
               icon="el-icon-user-solid"
             ></el-avatar>
-            <span class="username">{{ userInfo.username }}</span>
+            <span class="username">{{ userInfo.name }}</span>
             <i class="el-icon-caret-bottom"></i>
           </div>
           <el-dropdown-menu slot="dropdown">
@@ -43,15 +43,15 @@
           <i class="el-icon-user"></i>
           <span slot="title">个人信息</span>
         </el-menu-item>
-        <el-menu-item index="myClass" @click="$router.push('/myClass')">
+        <el-menu-item v-if="$store.state.userRole === 'STUDENT'" index="myClass" @click="$router.push('/myClass')">
           <i class="el-icon-document"></i>
           <span slot="title">我的班级</span>
         </el-menu-item>
-        <el-menu-item index="classManage" @click="$router.push('/classManage')">
+        <el-menu-item v-if="$store.state.userRole === 'TEACHER'" index="classManage" @click="$router.push('/classManage')">
           <i class="el-icon-folder"></i>
           <span slot="title">班级管理</span>
         </el-menu-item>
-        <el-menu-item index="problemManage" @click="$router.push('/problemManage')">
+        <el-menu-item v-if="$store.state.userRole === 'TEACHER'" index="problemManage" @click="$router.push('/problemManage')">
           <i class="el-icon-edit-outline"></i>
           <span slot="title">题目管理</span>
         </el-menu-item>

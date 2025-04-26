@@ -299,6 +299,8 @@ export default {
           this.$message.success('登录成功')
           window.localStorage.setItem('token', res.data.data.token)
           this.$store.commit('setUserName', res.data.data.userName)
+          this.$store.commit('setUserRole', res.data.data.role)
+          this.$store.commit('setName', res.data.data.name)
           this.$router.push({
             path: '/'
           })

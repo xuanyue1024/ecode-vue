@@ -12,7 +12,7 @@
           <el-dropdown trigger="click" @command="handleCommand">
             <div class="user-info">
               <el-avatar :size="32" :src="userInfo.profilePicture"></el-avatar>
-              <span class="username">{{ userInfo.username }}</span>
+              <span class="username">{{ userInfo.name }}</span>
               <i class="el-icon-caret-bottom"></i>
             </div>
             <el-dropdown-menu slot="dropdown">
@@ -49,7 +49,7 @@
           </el-menu-item>
           <el-menu-item index="statistics">
             <i class="el-icon-data-line"></i>
-            <span>学习统计</span>
+            <span>数据统计</span>
           </el-menu-item>
         </el-menu>
       </div>
