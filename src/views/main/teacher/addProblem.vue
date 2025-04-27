@@ -16,7 +16,6 @@
           <h4 class="section-title">基本信息</h4>
           <el-form-item label="题目标题" prop="title">
             <el-input v-model="form.title" placeholder="请输入题目标题，简洁明了">
-              <template slot="prepend">Title</template>
             </el-input>
             <div class="form-tip">好的题目标题应该简洁明了，能清晰表达题目的主要内容</div>
           </el-form-item>
@@ -90,14 +89,16 @@
               :ishljs="true"
             />
           </el-form-item>
-          <el-form-item label="解题要求" prop="require">
-            <el-input 
-              type="textarea" 
-              v-model="form.require" 
-              :rows="4"
-              placeholder="请说明解题的具体要求，如时间复杂度、空间复杂度等">
-            </el-input>
-            <div class="form-tip">明确的解题要求可以帮助学生更好地思考解决方案</div>
+          <el-form-item label="解答" prop="answer">
+            <mavon-editor
+              v-model="form.answer"
+              @change="handleAnswerChange"
+              :toolbars="markdownToolbars"
+              :boxShadow="false"
+              placeholder="提供解题思路和参考答案，帮助学生理解解题思路"
+              :style="{height: '300px'}"
+              :ishljs="true"
+            />
           </el-form-item>
         </div>
 
@@ -130,7 +131,7 @@
               </el-row>
             </div>
           </div>
-          <div class="form-tip">请至少提供一组测试用例，帮助学生验证程序的正确性</div>
+          <div class="form-tip">请至少提供测试用例，帮助学生验证程序的正确性</div>
         </div>
 
         <div class="form-section">
@@ -227,7 +228,7 @@ export default {
         title: '',
         grade: 'EASY',
         content: '',
-        require: '',
+        answer: '',
         maxTime: 5,
         maxMemory: 512,
         tagIds: [],
@@ -350,7 +351,7 @@ export default {
             title: data.title,
             grade: data.grade,
             content: data.content,
-            require: data.require,
+            answer: data.answer,
             maxTime: data.maxTime,
             maxMemory: data.maxMemory,
             tagIds: data.tagIds || [],
@@ -363,7 +364,6 @@ export default {
             inputTest4: data.inputTest4 || '',
             outputTest4: data.outputTest4 || ''
           }
-          
           // 如果有标签ID，获取标签详情
           if (this.form.tagIds.length > 0) {
             const tagRes = await getTagsByIds(this.form.tagIds)
@@ -398,11 +398,9 @@ export default {
             // 处理标签，将标签对象数组转换为ID数组
             const tagIds = formData.tagIds.map(tag => typeof tag === 'object' ? tag.id : tag)
             delete formData.tagIds // 移除标签信息，单独处理
-            
             const res = this.isEdit
               ? await updateProblem(formData)
               : await addProblem(formData)
-
             if (res.data.code === 200) {
               // 2. 获取题目ID
               const problemId = this.isEdit ? this.form.id : res.data.data
@@ -422,7 +420,7 @@ export default {
               }
               
               this.$message.success(this.isEdit ? '修改成功' : '新增成功')
-              this.handleBack()
+              this.handleBack() 
             }
           } catch (error) {
             console.error('保存题目失败:', error)
@@ -451,13 +449,11 @@ export default {
             if (res.data.code === 200) {
               const newTagId = res.data.data
               const newTag = { id: newTagId, name: tagName }
-              
               // 替换字符串为对象
               const index = updatedValues.findIndex(v => v === tagName)
               if (index !== -1) {
                 updatedValues[index] = newTag
               }
-              
               // 添加到选项中
               this.tagOptions.push(newTag)
               this.$message.success(`创建标签"${tagName}"成功`)
@@ -465,7 +461,6 @@ export default {
           } catch (error) {
             console.error('创建标签失败:', error)
             this.$message.error(`创建标签"${tagName}"失败`)
-            
             // 移除失败的标签
             const index = updatedValues.findIndex(v => v === tagName)
             if (index !== -1) {
@@ -498,13 +493,18 @@ export default {
     handleContentChange(value, render) {
       this.form.content = value
     },
-
+    
+    // 处理解答内容变化
+    handleAnswerChange(value, render) {
+      this.form.answer = value
+    },
+    
     // 显示生成对话框
     showGenerateDialog() {
       this.generateDialogVisible = true
       this.generatePrompt = ''
     },
-
+    
     // 生成题目
     async generateProblem() {
       if (!this.generatePrompt.trim()) {
@@ -515,7 +515,6 @@ export default {
       this.generating = true
       this.generateDialogVisible = false // 立即关闭对话框
       const token = window.localStorage.getItem('token') || window.sessionStorage.getItem('token')
-
       try {
         const url = `/api/user/ai/generate?require=${encodeURIComponent(this.generatePrompt)}`;
         const response = await fetch(url, {
@@ -530,7 +529,6 @@ export default {
         const decoder = new TextDecoder('utf-8')
         let buffer = ''
         this.form.content = '' // 清空现有内容
-
         let isReading = true
         while (isReading) {
           const { done, value } = await reader.read()
@@ -538,10 +536,8 @@ export default {
             isReading = false
             break
           }
-
           const chunk = decoder.decode(value, { stream: true })
           buffer += chunk
-          
           const lines = buffer.split('\n')
           buffer = lines.pop() || ''
           
@@ -577,14 +573,13 @@ export default {
 
         decoder.decode()
         this.$message.success('题目生成完成')
-
       } catch (error) {
         console.error('Error:', error)
         this.$message.error('生成题目失败')
       } finally {
         this.generating = false
       }
-    },
+    }
   }
 }
 </script>
@@ -653,7 +648,6 @@ export default {
   width: auto !important;
   max-width: 400px !important;
 }
-
 
 .form-section:hover {
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
@@ -846,7 +840,7 @@ export default {
 
 :deep(.auto-textarea-block), 
 :deep(.auto-textarea-block textarea) {
-  background-color: #fff !important;
+  background-color: #fff !important; 
   color: #303133 !important;
 }
 
@@ -872,8 +866,4 @@ export default {
   display: flex;
   justify-content: flex-end;
 }
-
-:deep(.el-dialog__body) {
-  padding: 20px;
-}
-</style> 
+</style>
