@@ -131,7 +131,7 @@
               </el-row>
             </div>
           </div>
-          <div class="form-tip">请至少提供测试用例，帮助学生验证程序的正确性</div>
+          <div class="form-tip">请提供测试用例，帮助学生验证程序的正确性</div>
         </div>
 
         <div class="form-section">
@@ -354,7 +354,7 @@ export default {
             answer: data.answer,
             maxTime: data.maxTime,
             maxMemory: data.maxMemory,
-            tagIds: data.tagIds || [],
+            tagIds: data.tags || [], // 直接使用返回的 tags 数组
             inputTest1: data.inputTest1 || '',
             outputTest1: data.outputTest1 || '',
             inputTest2: data.inputTest2 || '',
@@ -364,14 +364,10 @@ export default {
             inputTest4: data.inputTest4 || '',
             outputTest4: data.outputTest4 || ''
           }
-          // 如果有标签ID，获取标签详情
+          
+          // 将返回的标签数据添加到下拉选项中
           if (this.form.tagIds.length > 0) {
-            const tagRes = await getTagsByIds(this.form.tagIds)
-            if (tagRes.data.code === 200) {
-              // 转换为对象格式
-              this.form.tagIds = tagRes.data.data
-              this.tagOptions = tagRes.data.data
-            }
+            this.tagOptions = [...this.form.tagIds]
           }
         }
       } catch (error) {
