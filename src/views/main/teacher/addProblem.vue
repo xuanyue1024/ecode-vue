@@ -298,6 +298,8 @@ export default {
       generateDialogVisible: false,
       generatePrompt: '',
       generating: false,
+      anyMarkerSeen: false,
+      collectedText: ''
     }
   },
   computed: {
@@ -510,7 +512,26 @@ export default {
 
       this.generating = true
       this.generateDialogVisible = false // 立即关闭对话框
+      
+      // 初始化变量
+      this.form.title = '';
+      this.form.content = '';
+      this.form.answer = '';
+      this.form.inputTest1 = '';
+      this.form.outputTest1 = '';
+      this.form.inputTest2 = '';
+      this.form.outputTest2 = '';
+      this.form.inputTest3 = '';
+      this.form.outputTest3 = '';
+      this.form.inputTest4 = '';
+      this.form.outputTest4 = '';
+      
+      // 重置状态
+      this.anyMarkerSeen = false;
+      this.collectedText = '';
+      
       const token = window.localStorage.getItem('token') || window.sessionStorage.getItem('token')
+      
       try {
         const url = `/api/user/ai/generate?require=${encodeURIComponent(this.generatePrompt)}`;
         const response = await fetch(url, {
@@ -524,12 +545,6 @@ export default {
         const reader = response.body.getReader()
         const decoder = new TextDecoder('utf-8')
         let buffer = ''
-        this.form.content = '' // 清空现有内容
-        this.form.answer = '' // 清空现有解答
-        
-        let contentPart = ''
-        let answerPart = ''
-        let foundAnswerMarker = false
         
         let isReading = true
         while (isReading) {
@@ -550,54 +565,7 @@ export default {
                 if (jsonData.code === 200 && jsonData.data !== null) {
                   const text = jsonData.data
                   
-                  if (text.includes('---ANSWER---')) {
-                    // 如果当前块包含分隔符，将内容分为两部分
-                    const [content, answer] = text.split('---ANSWER---')
-                    contentPart += content
-                    answerPart += answer
-                    foundAnswerMarker = true
-                  } else if (foundAnswerMarker) {
-                    // 已经找到了分隔符，后续内容都归入答案部分
-                    answerPart += text
-                  } else {
-                    // 还没找到分隔符，内容归入题目部分
-                    contentPart += text
-                  }
-                  
-                  // 实时更新界面
-                  this.form.content = contentPart
-                  this.form.answer = answerPart
-                }
-              } catch (error) {
-                console.error('Error parsing message:', error)
-              }
-            }
-          }
-        }
-
-        // 处理最后剩余的buffer
-        if (buffer.length > 0) {
-          const lines = buffer.split('\n')
-          for (const line of lines) {
-            if (line.startsWith('data:')) {
-              try {
-                const jsonData = JSON.parse(line.slice(5))
-                if (jsonData.code === 200 && jsonData.data !== null) {
-                  const text = jsonData.data
-                  
-                  if (text.includes('---ANSWER---')) {
-                    const [content, answer] = text.split('---ANSWER---')
-                    contentPart += content
-                    answerPart += answer
-                    foundAnswerMarker = true
-                  } else if (foundAnswerMarker) {
-                    answerPart += text
-                  } else {
-                    contentPart += text
-                  }
-                  
-                  this.form.content = contentPart
-                  this.form.answer = answerPart
+                  this.processGeneratedText(text)
                 }
               } catch (error) {
                 console.error('Error parsing message:', error)
@@ -607,6 +575,10 @@ export default {
         }
 
         decoder.decode()
+        
+        // 解析完成后，检查整个文本以确保正确划分
+        this.finalProcessText()
+        
         this.$message.success('题目生成完成')
       } catch (error) {
         console.error('Error:', error)
@@ -614,7 +586,88 @@ export default {
       } finally {
         this.generating = false
       }
-    }
+    },
+
+    // 最终处理完整文本
+    finalProcessText() {
+      // 使用收集的所有文本进行解析分割
+      const allText = this.collectedText || '';
+      
+      // 1. 提取标题（从开始到第一个标记）
+      const firstMarkerIndex = allText.search(/---CONTENT---|---ANSWER---|---INPUT_TEST1---/);
+      this.form.title = firstMarkerIndex > 0 ? allText.substring(0, firstMarkerIndex).trim() : '';
+      
+      // 2. 提取内容（CONTENT标记之后，ANSWER标记之前）
+      const contentMatch = allText.match(/---CONTENT---([\s\S]*?)(?=---ANSWER---|---INPUT_TEST1---|$)/);
+      this.form.content = contentMatch ? contentMatch[1].trim() : '';
+      
+      // 3. 提取解答（ANSWER标记之后，到第一个INPUT_TEST1标记之前）
+      let answerText = '';
+      const answerMatch = allText.match(/---ANSWER---([\s\S]*?)(?=---INPUT_TEST1---|$)/);
+      if (answerMatch) {
+        answerText = answerMatch[1].trim();
+        // 移除解答中可能包含的测试用例提示文本
+        answerText = answerText.replace(/\{请在此生成题目的解答.*\}/g, '').trim();
+      }
+      this.form.answer = answerText;
+      
+      // 4. 提取所有测试用例
+      // 获取包含所有测试用例的文本部分
+      let testCaseText = '';
+      const testCaseIndex = allText.indexOf('---INPUT_TEST1---');
+      if (testCaseIndex !== -1) {
+        testCaseText = allText.substring(testCaseIndex);
+      }
+      
+      // 提取具体的测试用例
+      this.extractTestCases(testCaseText);
+      
+      // 在控制台输出一下结果，方便调试
+      console.log("解析结果:", {
+        title: this.form.title,
+        content: this.form.content.substring(0, 100) + "...",
+        answer: this.form.answer.substring(0, 100) + "...",
+        inputTest1: this.form.inputTest1,
+        outputTest1: this.form.outputTest1
+      });
+    },
+
+    // 从文本中提取测试用例
+    extractTestCases(text) {
+      if (!text || !text.includes('---INPUT_TEST1---')) return;
+      
+      // 测试用例的正则表达式，更严格地匹配以处理前导空格和注释
+      const testCases = [
+        { name: 'inputTest1', pattern: /---INPUT_TEST1---\s*([\s\S]*?)(?=\s*---OUTPUT_TEST1---|$)/},
+        { name: 'outputTest1', pattern: /---OUTPUT_TEST1---\s*([\s\S]*?)(?=\s*---INPUT_TEST2---|$)/},
+        { name: 'inputTest2', pattern: /---INPUT_TEST2---\s*([\s\S]*?)(?=\s*---OUTPUT_TEST2---|$)/},
+        { name: 'outputTest2', pattern: /---OUTPUT_TEST2---\s*([\s\S]*?)(?=\s*---INPUT_TEST3---|$)/},
+        { name: 'inputTest3', pattern: /---INPUT_TEST3---\s*([\s\S]*?)(?=\s*---OUTPUT_TEST3---|$)/},
+        { name: 'outputTest3', pattern: /---OUTPUT_TEST3---\s*([\s\S]*?)(?=\s*---INPUT_TEST4---|$)/},
+        { name: 'inputTest4', pattern: /---INPUT_TEST4---\s*([\s\S]*?)(?=\s*---OUTPUT_TEST4---|$)/},
+        { name: 'outputTest4', pattern: /---OUTPUT_TEST4---\s*([\s\S]*?)(?=$)/}
+      ];
+      
+      for (const testCase of testCases) {
+        const match = text.match(testCase.pattern);
+        if (match && match[1]) {
+          // 清理测试用例数据，移除可能的注释和额外空白题目描述中
+          let testData = match[1].trim();
+          // 移除形如 {请在此生成...} 的提示文本
+          testData = testData.replace(/\{请在此生成题目的.*样例.*\}/g, '').trim();
+          this.form[testCase.name] = testData;
+        }
+      }
+    },
+
+    // 处理生成的文本，流式输出时将所有文本直接显示在题目描述中
+    processGeneratedText(text) {
+      // 收集所有文本以便最后分析
+      this.collectedText = (this.collectedText || '') + text;
+      
+      // 把所有生成的内容都先显示在题目描述框中，方便用户查看生成过程
+      this.form.content = this.collectedText;
+    },
   }
 }
 </script>
@@ -631,11 +684,7 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
-  padding: 20px 24px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  margin-bottom: 36px;
 }
 
 .header-left {
