@@ -78,7 +78,8 @@ class Program {
   },
   plugins: [
     createPersistedState({
-      storage: window.sessionStorage, // 或者使用 localStorage
+      key: 'my-vuex-app', // 存储的键名
+      storage: window.localStorage, // 也可以使用 sessionStorage
     })
   ]
 })
