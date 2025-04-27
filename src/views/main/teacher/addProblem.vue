@@ -525,6 +525,12 @@ export default {
         const decoder = new TextDecoder('utf-8')
         let buffer = ''
         this.form.content = '' // 清空现有内容
+        this.form.answer = '' // 清空现有解答
+        
+        let contentPart = ''
+        let answerPart = ''
+        let foundAnswerMarker = false
+        
         let isReading = true
         while (isReading) {
           const { done, value } = await reader.read()
@@ -542,7 +548,25 @@ export default {
               try {
                 const jsonData = JSON.parse(line.slice(5))
                 if (jsonData.code === 200 && jsonData.data !== null) {
-                  this.form.content += jsonData.data
+                  const text = jsonData.data
+                  
+                  if (text.includes('---ANSWER---')) {
+                    // 如果当前块包含分隔符，将内容分为两部分
+                    const [content, answer] = text.split('---ANSWER---')
+                    contentPart += content
+                    answerPart += answer
+                    foundAnswerMarker = true
+                  } else if (foundAnswerMarker) {
+                    // 已经找到了分隔符，后续内容都归入答案部分
+                    answerPart += text
+                  } else {
+                    // 还没找到分隔符，内容归入题目部分
+                    contentPart += text
+                  }
+                  
+                  // 实时更新界面
+                  this.form.content = contentPart
+                  this.form.answer = answerPart
                 }
               } catch (error) {
                 console.error('Error parsing message:', error)
@@ -551,6 +575,7 @@ export default {
           }
         }
 
+        // 处理最后剩余的buffer
         if (buffer.length > 0) {
           const lines = buffer.split('\n')
           for (const line of lines) {
@@ -558,7 +583,21 @@ export default {
               try {
                 const jsonData = JSON.parse(line.slice(5))
                 if (jsonData.code === 200 && jsonData.data !== null) {
-                  this.form.content += jsonData.data
+                  const text = jsonData.data
+                  
+                  if (text.includes('---ANSWER---')) {
+                    const [content, answer] = text.split('---ANSWER---')
+                    contentPart += content
+                    answerPart += answer
+                    foundAnswerMarker = true
+                  } else if (foundAnswerMarker) {
+                    answerPart += text
+                  } else {
+                    contentPart += text
+                  }
+                  
+                  this.form.content = contentPart
+                  this.form.answer = answerPart
                 }
               } catch (error) {
                 console.error('Error parsing message:', error)
@@ -628,23 +667,6 @@ export default {
   transition: all 0.3s ease;
 }
 
-/* 修复标签选择下拉框 */
-:deep(.tag-input .el-select .el-select__tags) {
-  max-width: 100%;
-  flex-wrap: wrap;
-}
-
-:deep(.el-select-dropdown__item) {
-  text-align: left;
-  padding: 8px 12px;
-}
-
-:deep(.el-select-dropdown) {
-  min-width: 200px !important;
-  width: auto !important;
-  max-width: 400px !important;
-}
-
 .form-section:hover {
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   border-color: #e4e7ed;
@@ -711,6 +733,7 @@ export default {
 
 .test-case-item:hover {
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  border-color: #e4e7ed;
 }
 
 .test-case-header {
@@ -723,7 +746,6 @@ export default {
 .unit-label {
   margin-left: 10px;
   color: #606266;
-  font-size: 14px;
 }
 
 .problem-form {
@@ -794,67 +816,6 @@ export default {
 
 :deep(.v-note-wrapper) {
   z-index: 1 !important;
-  height: 500px !important;
-}
-
-:deep(.v-note-wrapper .v-note-panel) {
-  height: calc(100% - 40px) !important;
-}
-
-:deep(.v-note-wrapper .v-note-panel .v-note-edit.divarea-wrapper),
-:deep(.v-note-wrapper .v-note-panel .v-note-show) {
-  height: 100% !important;
-}
-
-:deep(.v-note-wrapper.fullscreen) {
-  z-index: 10000 !important;
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100% !important;
-  width: 100% !important;
-}
-
-:deep(.v-note-wrapper .v-note-panel .v-note-edit.divarea-wrapper) {
-  background-color: #fff !important;
-}
-
-:deep(.v-note-wrapper .v-note-panel .v-note-edit .input-content) {
-  background-color: #fff !important;
-  color: #303133 !important;
-}
-
-/* Target the specific editor content area */
-:deep(.markdown-body) {
-  background-color: #fff !important;
-}
-
-:deep(.v-note-edit .auto-textarea-input) {
-  background-color: #fff !important;
-  color: #303133 !important;
-}
-
-:deep(.auto-textarea-block), 
-:deep(.auto-textarea-block textarea) {
-  background-color: #fff !important; 
-  color: #303133 !important;
-}
-
-:deep(.v-note-edit textarea) {
-  background-color: #fff !important;
-  color: #303133 !important;
-}
-
-:deep(.v-note-wrapper.fullscreen .v-note-panel) {
-  height: calc(100% - 40px) !important;
-}
-
-:deep(.v-note-wrapper .v-note-op) {
-  z-index: 3 !important;
-}
-
-:deep(.op-icon.selected) {
-  background: none !important;
 }
 
 .content-header {
