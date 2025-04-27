@@ -15,3 +15,7 @@ export const getTagsByIds = (ids: number[]) =>
 // 学生端根据id集合获取标签
 export const getStudentTagsByIds = (ids: number[]) =>
   getRequest(`/api/student/tag/getByIds?ids=${ids.join(',')}`)
+
+// 批量添加标签
+export const batchAddTags = (tags: string[]) =>
+  postRequest('/api/teacher/tag/batch', tags)

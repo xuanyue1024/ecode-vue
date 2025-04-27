@@ -212,7 +212,7 @@
 
 <script>
 import { addProblem, updateProblem, setProblemTags, getProblemDetail } from '@/api/problem'
-import { searchTags, addTag, getTagsByIds } from '@/api/tag'
+import { searchTags, addTag, getTagsByIds, batchAddTags } from '@/api/tag'
 import mavonEditor from 'mavon-editor'
 import 'mavon-editor/dist/css/index.css'
 
@@ -593,8 +593,16 @@ export default {
       // 使用收集的所有文本进行解析分割
       const allText = this.collectedText || '';
       
+      // 提取标签（TAGS标记之后，CONTENT标记之前）
+      let extractedTags = [];
+      const tagsMatch = allText.match(/---TAGS---([\s\S]*?)(?=---CONTENT---|$)/);
+      if (tagsMatch && tagsMatch[1]) {
+        // 解析标签列表，按逗号分隔，并去除空白
+        extractedTags = tagsMatch[1].split(',').map(tag => tag.trim()).filter(tag => tag);
+      }
+      
       // 1. 提取标题（从开始到第一个标记）
-      const firstMarkerIndex = allText.search(/---CONTENT---|---ANSWER---|---INPUT_TEST1---/);
+      const firstMarkerIndex = allText.search(/---TAGS---|---CONTENT---|---ANSWER---|---INPUT_TEST1---/);
       this.form.title = firstMarkerIndex > 0 ? allText.substring(0, firstMarkerIndex).trim() : '';
       
       // 2. 提取内容（CONTENT标记之后，ANSWER标记之前）
@@ -622,14 +630,58 @@ export default {
       // 提取具体的测试用例
       this.extractTestCases(testCaseText);
       
+      // 如果找到了标签，询问用户是否要插入
+      if (extractedTags.length > 0) {
+        this.$confirm(`AI 生成的题目包含以下标签: ${extractedTags.join(', ')}。是否自动添加这些标签?`, '添加标签', {
+          confirmButtonText: '添加',
+          cancelButtonText: '取消',
+          type: 'info'
+        }).then(() => {
+          this.addBatchTags(extractedTags);
+        }).catch(() => {
+          // 用户取消，不做处理
+        });
+      }
+      
       // 在控制台输出一下结果，方便调试
       console.log("解析结果:", {
         title: this.form.title,
+        tags: extractedTags,
         content: this.form.content.substring(0, 100) + "...",
         answer: this.form.answer.substring(0, 100) + "...",
         inputTest1: this.form.inputTest1,
         outputTest1: this.form.outputTest1
       });
+    },
+    
+    // 批量添加标签并将结果添加到当前题目
+    async addBatchTags(tags) {
+      if (!tags || tags.length === 0) return;
+      
+      try {
+        const res = await batchAddTags(tags);
+        if (res.data.code === 200 && res.data.data && res.data.data.length > 0) {
+          const tagIds = res.data.data;
+          // 创建新标签对象数组
+          const newTags = tagIds.map((id, index) => ({
+            id,
+            name: tags[index]
+          }));
+          
+          // 将新标签添加到选项中
+          this.tagOptions = [...this.tagOptions, ...newTags];
+          
+          // 将新标签添加到已选择的标签中
+          this.form.tagIds = [...this.form.tagIds, ...newTags];
+          
+          this.$message.success('标签添加成功');
+        } else {
+          this.$message.error(res.data.msg || '标签添加失败');
+        }
+      } catch (error) {
+        console.error('批量添加标签失败:', error);
+        this.$message.error('标签添加失败');
+      }
     },
 
     // 从文本中提取测试用例
