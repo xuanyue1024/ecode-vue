@@ -578,7 +578,7 @@ export default {
         })
         const token = window.localStorage.getItem('token') || window.sessionStorage.getItem('token')
         // 创建 POST 请求
-        const response = await fetch('/api/user/ai/chat', {
+        const response = await fetch('/api/user/ai/questionAnswer', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -590,6 +590,7 @@ export default {
             prompt: userMessage,
             thinking: true,
             search: true,
+            problemId: this.$route.query.problemId
           })
         })
         // 获取响应的 reader
@@ -772,15 +773,15 @@ export default {
       }
     },
     createAiChatId(){
-      const id = localStorage.getItem('chatId');
+      /* const id = localStorage.getItem('chatId');
       if (id) {
         this.chatId = id;
         return;
-      }
-      createChatId('chat').then(res => {
+      } */
+      createChatId('CODE').then(res => {
         if(res.data.code === 200){
           this.chatId = res.data.data;
-          window.localStorage.setItem('chatId', res.data.data)
+          // window.localStorage.setItem('chatId', res.data.data)
         }
       })
     },
