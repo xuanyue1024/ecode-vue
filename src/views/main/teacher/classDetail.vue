@@ -51,6 +51,10 @@
             <i class="el-icon-data-line"></i>
             <span>数据统计</span>
           </el-menu-item>
+          <el-menu-item index="knowledgeBase">
+            <i class="el-icon-reading"></i>
+            <span>知识库</span>
+          </el-menu-item>
         </el-menu>
       </div>
 
@@ -233,6 +237,33 @@
             </div>
           </el-card>
         </div>
+
+        <!-- 知识库 -->
+        <div v-show="activeMenu === 'knowledgeBase'" class="content-section">
+          <el-card v-loading="pdfLoading">
+            <div class="knowledge-base-content">
+              <h3>班级知识库</h3>
+              
+              <div v-if="hasPdf" class="knowledge-base-actions">
+                <p class="pdf-info">
+                  <i class="el-icon-document"></i>
+                  班级学习资料已上传
+                </p>
+                <div class="action-buttons">
+                  <el-button type="primary" @click="viewPdf">查看PDF</el-button>
+                  <el-button type="success" @click="downloadPdf">下载PDF</el-button>
+                  <el-button type="warning" @click="showUploadDialog">重新上传</el-button>
+                </div>
+              </div>
+              
+              <div v-else class="knowledge-base-upload">
+                <el-empty description="暂无知识库文件">
+                  <el-button type="primary" @click="showUploadDialog">上传PDF文件</el-button>
+                </el-empty>
+              </div>
+            </div>
+          </el-card>
+        </div>
       </div>
     </div>
 
@@ -311,6 +342,31 @@
         </el-table>
       </div>
     </el-dialog>
+
+    <!-- PDF上传对话框 -->
+    <el-dialog
+      title="上传知识库PDF文件"
+      :visible.sync="uploadDialogVisible"
+      width="500px">
+      <div class="upload-dialog-content">
+        <el-upload
+          class="upload-demo"
+          drag
+          action="#"
+          :http-request="handlePdfUpload"
+          :before-upload="beforePdfUpload"
+          :limit="1"
+          accept=".pdf"
+          :file-list="fileList">
+          <i class="el-icon-upload"></i>
+          <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+          <div class="el-upload__tip" slot="tip">只能上传PDF文件</div>
+        </el-upload>
+      </div>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="uploadDialogVisible = false">取 消</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -319,6 +375,8 @@ import { getTeacherClassMembers, getClassProblemPage, addProblemToClass, removeP
 import { getProblemPage } from '@/api/problem'
 import { getUserInfo } from '@/api/user'
 import { formatDate } from '@/utils/date'
+import { checkPdfExists, getKnowledgeBasePdfUrl } from '@/api/ai'
+import { uploadFileRequest } from '@/utils/request'
 import ECharts from 'vue-echarts'
 import 'echarts/lib/chart/bar'
 import 'echarts/lib/component/tooltip'
@@ -433,7 +491,13 @@ export default {
             }
           }
         ]
-      }
+      },
+      // 知识库相关
+      hasPdf: false,
+      pdfUrl: '',
+      uploadDialogVisible: false,
+      fileList: [],
+      pdfLoading: false,
     }
   },
   created() {
@@ -460,6 +524,11 @@ export default {
     // 初始化数据
     this.initData()
     this.getUserDetails()
+
+    // 如果是知识库页面，检查PDF文件是否存在
+    if (this.activeMenu === 'knowledgeBase') {
+      this.checkPdfExistence()
+    }
   },
   methods: {
     formatDate,
@@ -471,6 +540,8 @@ export default {
       this.activeMenu = index
       if (index === 'statistics') {
         await this.queryMembers()
+      } else if (index === 'knowledgeBase') {
+        await this.checkPdfExistence()
       }
     },
     handleLogout() {
@@ -763,6 +834,70 @@ export default {
       if (command === 'logout') {
         this.handleLogout()
       }
+    },
+    // 知识库相关方法
+    async checkPdfExistence() {
+      this.pdfLoading = true
+      try {
+        const response = await checkPdfExists(this.classInfo.id)
+        this.hasPdf = response.data.data === true
+        if (this.hasPdf) {
+          this.pdfUrl = getKnowledgeBasePdfUrl(this.classInfo.id)
+        }
+      } catch (error) {
+        console.error('检查PDF文件存在失败:', error)
+        this.hasPdf = false
+      } finally {
+        this.pdfLoading = false
+      }
+    },
+    
+    viewPdf() {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || ''
+      window.open(`${this.pdfUrl}?token=${token}`, '_blank')
+    },
+    
+    downloadPdf() {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || ''
+      const a = document.createElement('a')
+      a.href = `${this.pdfUrl}?token=${token}`
+      a.download = `${this.classInfo.name}-学习资料.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    },
+    
+    showUploadDialog() {
+      this.uploadDialogVisible = true
+      this.fileList = []
+    },
+    
+    beforePdfUpload(file) {
+      const isPdf = file.type === 'application/pdf'
+      
+      if (!isPdf) {
+        this.$message.error('只能上传PDF文件!')
+      }
+      
+      return isPdf
+    },
+    
+    async handlePdfUpload({ file }) {
+      try {
+        const url = `/api/user/ai/pdf/upload/${this.classInfo.id}`
+        const res = await uploadFileRequest(url, file)
+        
+        if (res.data.code === 200) {
+          this.$message.success('PDF文件上传成功')
+          this.uploadDialogVisible = false
+          await this.checkPdfExistence()
+        } else {
+          this.$message.error(res.data.msg || '上传失败')
+        }
+      } catch (error) {
+        console.error('上传PDF文件失败:', error)
+        this.$message.error('上传PDF文件失败')
+      }
     }
   }
 }
@@ -1036,5 +1171,52 @@ export default {
   padding: 20px;
   margin-bottom: 20px;
   box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+}
+
+/* 知识库样式 */
+.knowledge-base-content {
+  padding: 20px;
+}
+
+.knowledge-base-upload {
+  margin-top: 30px;
+  text-align: center;
+}
+
+.knowledge-base-actions {
+  margin-top: 20px;
+  text-align: center;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
+}
+
+.pdf-info {
+  font-size: 16px;
+  color: #409EFF;
+  margin-bottom: 20px;
+}
+
+.pdf-info i {
+  margin-right: 5px;
+  font-size: 20px;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+@media screen and (max-width: 768px) {
+  .action-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+.upload-dialog-content {
+  text-align: center;
 }
 </style>

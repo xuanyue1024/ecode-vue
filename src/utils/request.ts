@@ -64,6 +64,18 @@ export const deleteRequestForm = (url: string, params: any) => {
     return httptool.delete(`${url}`, { params: params });
 }
 
+// 文件上传请求
+export const uploadFileRequest = (url: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    return httptool.post(url, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
+}
+
 // 请求拦截器
 httptool.interceptors.request.use(config => {
     const token = window.localStorage.getItem('token') || window.sessionStorage.getItem('token');
@@ -104,4 +116,5 @@ export default {
     putRequestJson,
     getRequest,
     deleteRequest,
+    uploadFileRequest, // 现在可以正确导出了
 };

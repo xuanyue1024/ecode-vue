@@ -590,7 +590,8 @@ export default {
             prompt: userMessage,
             thinking: true,
             search: true,
-            problemId: this.$route.query.problemId
+            problemId: this.$route.query.problemId,
+            classId: this.$route.query.classId
           })
         })
         // 获取响应的 reader
