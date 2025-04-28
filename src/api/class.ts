@@ -33,6 +33,14 @@ export const removeProblemFromClass = (data: any) =>
 export const getClassProblemPage = (params: any) =>
   getRequest(`/api/teacher/class/problem/page?classId=${params.classId}&pageNo=${params.pageNo}&pageSize=${params.pageSize}&name=${params.name || ''}&isAsc=${params.isAsc || false}&sortBy=${params.sortBy || ''}`)
 
+// 获取班级题目通过率排行榜
+export const getClassProblemPassRate = (classId: number) =>
+  getRequest(`/api/teacher/statistic/classProblemPassRate/${classId}`)
+
+// 获取班级学生成绩排名
+export const getClassStudentRank = (classId: number) =>
+  getRequest(`/api/teacher/statistic/classStudentRank/${classId}`)
+
 // 学生端接口
 // 加入班级
 export const joinClass = (invitationCode: string) =>

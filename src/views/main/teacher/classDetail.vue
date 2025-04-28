@@ -29,7 +29,7 @@
       <div class="side-menu">
         <div class="class-info">
           <h3>{{ classInfo.name }}</h3>
-          <p>邀请码：{{ classInfo.invitationCode }}</p>
+          <p></p>
         </div>
         <el-menu
           :default-active="activeMenu"
@@ -47,9 +47,9 @@
             <i class="el-icon-notebook-2"></i>
             <span>班级题目</span>
           </el-menu-item>
-          <el-menu-item index="statistics">
-            <i class="el-icon-data-line"></i>
-            <span>数据统计</span>
+          <el-menu-item index="problemRank">
+            <i class="el-icon-trophy"></i>
+            <span>排行榜</span>
           </el-menu-item>
           <el-menu-item index="knowledgeBase">
             <i class="el-icon-reading"></i>
@@ -219,19 +219,87 @@
           </el-card>
         </div>
 
-        <!-- 学习统计 -->
-        <div v-show="activeMenu === 'statistics'" class="content-section">
-          <el-card>
+        <!-- 题目排行榜 -->
+        <div v-show="activeMenu === 'problemRank'" class="content-section">
+          <el-card v-loading="problemRankLoading">
             <div class="statistics-content">
-              <h3>学习统计</h3>
+              <h3>题目通过率排行榜</h3>
               <div class="charts-container">
                 <div class="chart-item">
                   <v-chart 
-                    ref="memberScoreChart" 
-                    :options="memberScoreOptions" 
+                    ref="problemPassRateChart" 
+                    :options="problemPassRateOptions" 
                     style="width: 100%; height: 400px;"
                     autoresize>
                   </v-chart>
+                </div>
+                <div class="table-container">
+                  <el-table 
+                    :data="problemRankList"
+                    border
+                    stripe
+                    style="width: 100%; margin-top: 20px;">
+                    <el-table-column prop="problemTitle" label="题目" width="300"></el-table-column>
+                    <el-table-column label="难度" width="120">
+                      <template slot-scope="scope">
+                        <el-tag :type="scope.row.difficulty === 1 ? 'success' : scope.row.difficulty === 2 ? 'warning' : 'danger'">
+                          {{ scope.row.difficulty === 1 ? '简单' : scope.row.difficulty === 2 ? '中等' : '困难' }}
+                        </el-tag>
+                      </template>
+                    </el-table-column>
+                    <el-table-column prop="attemptedStudents" label="尝试人数"></el-table-column>
+                    <el-table-column prop="totalSubmissions" label="总提交次数"></el-table-column>
+                    <el-table-column label="通过率">
+                      <template slot-scope="scope">
+                        <el-progress 
+                          :percentage="parseFloat((scope.row.passRate * 100).toFixed(2))"
+                          :format="percentFormat">
+                        </el-progress>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </div>
+              </div>
+            </div>
+          </el-card>
+          
+          <!-- 学生成绩排名 -->
+          <el-card v-loading="studentRankLoading" style="margin-top: 20px;">
+            <div class="statistics-content">
+              <h3>学生成绩排名</h3>
+              <div class="charts-container">
+                <div class="chart-item">
+                  <v-chart 
+                    ref="studentRankChart" 
+                    :options="studentRankOptions" 
+                    style="width: 100%; height: 400px;"
+                    autoresize>
+                  </v-chart>
+                </div>
+                <div class="table-container">
+                  <el-table 
+                    :data="studentRankList"
+                    border
+                    stripe
+                    style="width: 100%; margin-top: 20px;">
+                    <el-table-column prop="studentName" label="学生姓名" width="180"></el-table-column>
+                    <el-table-column prop="attemptedProblems" label="尝试题目数" width="120"></el-table-column>
+                    <el-table-column prop="totalSubmissions" label="总提交次数" width="120"></el-table-column>
+                    <el-table-column prop="passedSubmissions" label="通过次数" width="120"></el-table-column>
+                    <el-table-column prop="avgScore" label="平均分" width="120">
+                      <template slot-scope="scope">
+                        {{ scope.row.avgScore.toFixed(2) }}
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="通过率" width="180">
+                      <template slot-scope="scope">
+                        <el-progress 
+                          :percentage="parseFloat(scope.row.passRatePercentage.toFixed(2))"
+                          :format="percentFormat">
+                        </el-progress>
+                      </template>
+                    </el-table-column>
+                  </el-table>
                 </div>
               </div>
             </div>
@@ -371,7 +439,7 @@
 </template>
 
 <script>
-import { getTeacherClassMembers, getClassProblemPage, addProblemToClass, removeProblemFromClass, getTeacherClassProblemInfo } from '@/api/class'
+import { getTeacherClassMembers, getClassProblemPage, addProblemToClass, removeProblemFromClass, getTeacherClassProblemInfo, getClassProblemPassRate, getClassStudentRank } from '@/api/class'
 import { getProblemPage } from '@/api/problem'
 import { getUserInfo } from '@/api/user'
 import { formatDate } from '@/utils/date'
@@ -445,9 +513,18 @@ export default {
         username: '',
         profilePicture: ''
       },
-      memberScoreOptions: {
+      // 知识库相关
+      hasPdf: false,
+      pdfUrl: '',
+      uploadDialogVisible: false,
+      fileList: [],
+      pdfLoading: false,
+      // 题目排行榜相关
+      problemRankLoading: false,
+      problemRankList: [],
+      problemPassRateOptions: {
         title: {
-          text: '学生得分统计',
+          text: '题目通过率排行榜',
           left: 'center'
         },
         tooltip: {
@@ -457,13 +534,85 @@ export default {
           },
           formatter: function(params) {
             const data = params[0]
-            return `${data.name}<br/>得分：${data.value}`
+            return `${data.name}<br/>通过率：${(data.value * 100).toFixed(2)}%`
           }
         },
         grid: {
           left: '3%',
           right: '4%',
-          bottom: '3%',
+          bottom: '10%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          data: [],
+          axisLabel: {
+            interval: 0,
+            rotate: 30,
+            formatter: function(value) {
+              if (value.length > 15) {
+                return value.substring(0, 12) + '...'
+              }
+              return value
+            }
+          }
+        },
+        yAxis: {
+          type: 'value',
+          name: '通过率',
+          min: 0,
+          max: 1,
+          axisLabel: {
+            formatter: function(value) {
+              return (value * 100).toFixed(0) + '%'
+            }
+          }
+        },
+        series: [
+          {
+            type: 'bar',
+            data: [],
+            itemStyle: {
+              color: function(params) {
+                // 根据通过率设置不同颜色
+                const value = params.data
+                if (value >= 0.8) return '#67C23A'  // 高通过率为绿色
+                if (value >= 0.5) return '#E6A23C'  // 中等通过率为黄色
+                return '#F56C6C'  // 低通过率为红色
+              }
+            },
+            label: {
+              show: true,
+              position: 'top',
+              formatter: function(params) {
+                return (params.value * 100).toFixed(0) + '%'
+              }
+            }
+          }
+        ]
+      },
+      // 学生排名相关
+      studentRankLoading: false,
+      studentRankList: [],
+      studentRankOptions: {
+        title: {
+          text: '学生成绩排名',
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow'
+          },
+          formatter: function(params) {
+            const data = params[0]
+            return `${data.name}<br/>平均分：${data.value.toFixed(2)}`
+          }
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '10%',
           containLabel: true
         },
         xAxis: {
@@ -476,28 +625,31 @@ export default {
         },
         yAxis: {
           type: 'value',
-          name: '得分'
+          name: '平均分'
         },
         series: [
           {
             type: 'bar',
             data: [],
             itemStyle: {
-              color: '#409EFF'
+              color: function(params) {
+                // 根据分数设置不同颜色
+                const value = params.data
+                if (value >= 3) return '#67C23A'  // 高分为绿色
+                if (value >= 2) return '#E6A23C'  // 中等分为黄色
+                return '#F56C6C'  // 低分为红色
+              }
             },
             label: {
               show: true,
-              position: 'top'
+              position: 'top',
+              formatter: function(params) {
+                return params.value.toFixed(2)
+              }
             }
           }
         ]
-      },
-      // 知识库相关
-      hasPdf: false,
-      pdfUrl: '',
-      uploadDialogVisible: false,
-      fileList: [],
-      pdfLoading: false,
+      }
     }
   },
   created() {
@@ -538,10 +690,11 @@ export default {
     },
     async handleMenuSelect(index) {
       this.activeMenu = index
-      if (index === 'statistics') {
-        await this.queryMembers()
-      } else if (index === 'knowledgeBase') {
+      if (index === 'knowledgeBase') {
         await this.checkPdfExistence()
+      } else if (index === 'problemRank') {
+        await this.loadProblemPassRate()
+        await this.loadStudentRank()
       }
     },
     handleLogout() {
@@ -564,35 +717,12 @@ export default {
             const totalScore = this.memberList.reduce((sum, member) => sum + member.totalScore, 0)
             this.averageScore = Math.round(totalScore / this.memberList.length)
           }
-
-          // 如果是在统计页面，更新图表
-          if (this.activeMenu === 'statistics') {
-            this.updateMemberScoreChart(this.memberList)
-          }
         }
       } catch (error) {
         console.error('获取成员列表错误:', error)
         this.$message.error('获取成员列表失败')
       } finally {
         this.memberLoading = false
-      }
-    },
-    updateMemberScoreChart(members) {
-      // 按得分排序
-      const sortedMembers = [...members].sort((a, b) => b.totalScore - a.totalScore)
-      
-      this.memberScoreOptions = {
-        ...this.memberScoreOptions,
-        xAxis: {
-          ...this.memberScoreOptions.xAxis,
-          data: sortedMembers.map(member => member.name || member.username)
-        },
-        series: [
-          {
-            ...this.memberScoreOptions.series[0],
-            data: sortedMembers.map(member => member.totalScore)
-          }
-        ]
       }
     },
     handleMemberSizeChange(val) {
@@ -897,6 +1027,91 @@ export default {
       } catch (error) {
         console.error('上传PDF文件失败:', error)
         this.$message.error('上传PDF文件失败')
+      }
+    },
+    // 加载题目通过率排行榜数据
+    async loadProblemPassRate() {
+      if (!this.classInfo.id) return
+      
+      this.problemRankLoading = true
+      try {
+        const res = await getClassProblemPassRate(this.classInfo.id)
+        if (res.data.code === 200) {
+          this.problemRankList = res.data.data || []
+          
+          // 更新图表数据
+          this.updateProblemPassRateChart()
+        }
+      } catch (error) {
+        console.error('获取题目通过率数据失败:', error)
+        this.$message.error('获取题目通过率数据失败')
+      } finally {
+        this.problemRankLoading = false
+      }
+    },
+    
+    // 更新题目通过率图表
+    updateProblemPassRateChart() {
+      // 按通过率排序
+      const sortedProblems = [...this.problemRankList].sort((a, b) => b.passRate - a.passRate)
+      
+      this.problemPassRateOptions = {
+        ...this.problemPassRateOptions,
+        xAxis: {
+          ...this.problemPassRateOptions.xAxis,
+          data: sortedProblems.map(problem => problem.problemTitle)
+        },
+        series: [
+          {
+            ...this.problemPassRateOptions.series[0],
+            data: sortedProblems.map(problem => problem.passRate)
+          }
+        ]
+      }
+    },
+    
+    // 格式化百分比
+    percentFormat(percentage) {
+      return percentage + '%'
+    },
+    // 加载学生成绩排名数据
+    async loadStudentRank() {
+      if (!this.classInfo.id) return
+      
+      this.studentRankLoading = true
+      try {
+        const res = await getClassStudentRank(this.classInfo.id)
+        if (res.data.code === 200) {
+          this.studentRankList = res.data.data || []
+          
+          // 更新图表数据
+          this.updateStudentRankChart()
+        }
+      } catch (error) {
+        console.error('获取学生成绩排名数据失败:', error)
+        this.$message.error('获取学生成绩排名数据失败')
+      } finally {
+        this.studentRankLoading = false
+      }
+    },
+    
+    // 更新学生成绩排名图表
+    updateStudentRankChart() {
+      // 按平均分排序
+      const sortedStudents = [...this.studentRankList].sort((a, b) => b.avgScore - a.avgScore)
+      
+      this.studentRankOptions = {
+        ...this.studentRankOptions,
+        xAxis: {
+          ...this.studentRankOptions.xAxis,
+          data: sortedStudents.map(student => student.studentName)
+        },
+        series: [
+          {
+            ...this.studentRankOptions.series[0],
+            data: sortedStudents.map(student => student.avgScore)
+          }
+        ]
       }
     }
   }
@@ -1218,5 +1433,9 @@ export default {
 
 .upload-dialog-content {
   text-align: center;
+}
+
+.table-container {
+  margin-top: 30px;
 }
 </style>
