@@ -41,6 +41,22 @@ export const getClassProblemPassRate = (classId: number) =>
 export const getClassStudentRank = (classId: number) =>
   getRequest(`/api/teacher/statistic/classStudentRank/${classId}`)
 
+// 获取班级题目难度分布 - 教师
+export const getTeacherClassProblemDifficultyNum = (classId: number) =>
+  getRequest(`/api/teacher/statistic/classProblemDifficultyNum/${classId}`)
+
+// 获取班级题目难度分布 - 学生
+export const getStudentClassProblemDifficultyNum = (classId: number) =>
+  getRequest(`/api/student/statistic/classProblemDifficultyNum/${classId}`)
+
+// 获取班级题目标签分布 - 教师
+export const getTeacherClassProblemTagNum = (classId: number) =>
+  getRequest(`/api/teacher/statistic/classProblemTagNum/${classId}`)
+
+// 获取班级题目标签分布 - 学生
+export const getStudentClassProblemTagNum = (classId: number) =>
+  getRequest(`/api/student/statistic/classProblemTagNum/${classId}`)
+
 // 学生端接口
 // 加入班级
 export const joinClass = (invitationCode: string) =>

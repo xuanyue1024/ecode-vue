@@ -57,7 +57,6 @@
       <!-- 内容区域 -->
       <div class="main-content">
         <!-- 班级概览 -->
-        <!-- 班级概览部分更新 -->
         <div v-show="activeMenu === 'overview'" class="content-section">
           <el-card class="overview-card">
             <div class="overview-header">
@@ -88,22 +87,31 @@
               </div>
             </div>
 
-            <!-- 添加题目完成情况饼图 -->
-            <div class="chart-container">
-              <v-chart
-                :options="pieChartOptions"
-                style="width: 100%; height: 400px;"
-                autoresize>
-              </v-chart>
-            </div>
-
-            <!-- 添加提交情况条形图 -->
-            <div class="chart-container">
-              <v-chart
-                :options="barChartOptions"
-                style="width: 100%; height: 500px;"
-                autoresize>
-              </v-chart>
+            <!-- 添加题目难度和标签分布图表 -->
+            <div class="chart-container-wrapper">
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <div class="chart-container">
+                    <h4>题目难度分布</h4>
+                    <v-chart 
+                      :options="difficultyPieOptions" 
+                      style="width: 100%; height: 300px;"
+                      autoresize>
+                    </v-chart>
+                  </div>
+                </el-col>
+                <el-col :span="12">
+                  <div class="chart-container">
+                    <h4>题目标签分布</h4>
+                    <v-chart 
+                      ref="tagBarChart" 
+                      :options="tagBarOptions" 
+                      style="width: 100%; height: 300px;"
+                      autoresize>
+                    </v-chart>
+                  </div>
+                </el-col>
+              </el-row>
             </div>
           </el-card>
         </div>
@@ -251,7 +259,7 @@
 </template>
 
 <script>
-import { getClassMembers, getStudentClassProblemPage, getClassProblemInfo } from '@/api/class'
+import { getClassMembers, getStudentClassProblemPage, getClassProblemInfo, getStudentClassProblemDifficultyNum, getStudentClassProblemTagNum } from '@/api/class'
 import { getUserInfo } from '@/api/user'
 import { getStudentStatistic } from '@/api/statistic'
 import { getStudentTagsByIds } from '@/api/tag'
@@ -363,38 +371,52 @@ export default {
         ]
       },
 
-      // 饼图配置
-      pieChartOptions: {
+      // 题目难度分布饼图配置
+      difficultyPieOptions: {
         title: {
-          text: '班级题目完成情况',
+          text: '题目难度分布',
           left: 'center'
         },
         tooltip: {
           trigger: 'item',
-          formatter: '{b}: {c} ({d}%)'
+          formatter: '{a} <br/>{b}: {c} ({d}%)'
         },
         legend: {
           orient: 'vertical',
-          left: 'left'
+          left: 10,
+          top: 'center',
+          data: ['简单', '中等', '困难']
         },
-        series: [{
-          type: 'pie',
-          radius: '50%',
-          data: [],
-          emphasis: {
-            itemStyle: {
-              shadowBlur: 10,
-              shadowOffsetX: 0,
-              shadowColor: 'rgba(0, 0, 0, 0.5)'
-            }
+        color: ['#67C23A', '#E6A23C', '#F56C6C'],
+        series: [
+          {
+            name: '难度分布',
+            type: 'pie',
+            radius: ['40%', '70%'],
+            avoidLabelOverlap: false,
+            label: {
+              show: false,
+              position: 'center'
+            },
+            emphasis: {
+              label: {
+                show: true,
+                fontSize: '16',
+                fontWeight: 'bold'
+              }
+            },
+            labelLine: {
+              show: false
+            },
+            data: []
           }
-        }]
+        ]
       },
-
-      // 条形图配置
-      barChartOptions: {
+      
+      // 题目标签分布柱状图配置
+      tagBarOptions: {
         title: {
-          text: '学生提交情况统计',
+          text: '题目标签分布',
           left: 'center'
         },
         tooltip: {
@@ -403,14 +425,10 @@ export default {
             type: 'shadow'
           }
         },
-        legend: {
-          data: ['提交次数', '通过次数', '通过率'],
-          top: 30
-        },
         grid: {
           left: '3%',
           right: '4%',
-          bottom: '3%',
+          bottom: '10%',
           containLabel: true
         },
         xAxis: {
@@ -418,21 +436,30 @@ export default {
           data: [],
           axisLabel: {
             interval: 0,
-            rotate: 30
+            rotate: 30,
+            formatter: function(value) {
+              return value.length > 10 ? value.slice(0, 10) + '...' : value
+            }
           }
         },
-        yAxis: [
+        yAxis: {
+          type: 'value',
+          name: '题目数量'
+        },
+        series: [
           {
-            type: 'value',
-            name: '次数'
-          },
-          {
-            type: 'value',
-            name: '通过率(%)',
-            max: 100
+            name: '题目数量',
+            type: 'bar',
+            data: [],
+            itemStyle: {
+              color: '#409EFF'
+            },
+            label: {
+              show: true,
+              position: 'top'
+            }
           }
-        ],
-        series: []
+        ]
       }
     }
   },
@@ -441,50 +468,58 @@ export default {
     this.problemQuery.classId = this.$route.params.id
     this.initData()
     this.getUserDetails()
-    this.loadOverviewData();
+    this.loadDifficultyDistribution()
+    this.loadTagDistribution()
   },
   methods: {
 
-    async loadOverviewData() {
+    
+
+    async loadDifficultyDistribution() {
       try {
-        // 获取题目完成情况
-        const completeRes = await getRequest(`/api/student/class/problem/complete/${this.$route.params.id}`);
-        if (completeRes.data.code === 200) {
-          const { totalProblems, completedProblems } = completeRes.data.data;
-          this.pieChartOptions.series[0].data = [
-            { name: '已完成', value: completedProblems },
-            { name: '未完成', value: totalProblems - completedProblems }
-          ];
-        }
-
-        // 获取提交情况
-        const submissionsRes = await getRequest(`/api/student/class/problem/submissions/${this.$route.params.id}`);
-        if (submissionsRes.data.code === 200) {
-          const submissions = submissionsRes.data.data;
-
-          this.barChartOptions.xAxis.data = submissions.map(item => item.studentName);
-          this.barChartOptions.series = [
-            {
-              name: '提交次数',
-              type: 'bar',
-              data: submissions.map(item => Number(item.totalSubmissions))
-            },
-            {
-              name: '通过次数',
-              type: 'bar',
-              data: submissions.map(item => Number(item.totalPasses))
-            },
-            {
-              name: '通过率',
-              type: 'line',
-              yAxisIndex: 1,
-              data: submissions.map(item => Number(item.passRate))
-            }
-          ];
+        const res = await getStudentClassProblemDifficultyNum(this.$route.params.id)
+        if (res.data.code === 200) {
+          const difficultyData = res.data.data || []
+          
+          // 直接使用API返回的难度名称
+          const chartData = difficultyData.map(item => ({
+            name: item.difficulty, // 直接使用API返回的难度名称
+            value: item.problemNum
+          }))
+          
+          this.difficultyPieOptions.series[0].data = chartData
+          
+          // 更新图例数据
+          this.difficultyPieOptions.legend.data = chartData.map(item => item.name)
         }
       } catch (error) {
-        console.error('获取概览数据失败:', error);
-        this.$message.error('获取概览数据失败');
+        console.error('获取题目难度分布失败:', error)
+        this.$message.error('获取题目难度分布失败')
+      }
+    },
+    
+    async loadTagDistribution() {
+      try {
+        const res = await getStudentClassProblemTagNum(this.$route.params.id)
+        if (res.data.code === 200) {
+          const tagData = res.data.data || []
+          // 只保留有数量的标签
+          const sorted = tagData
+            .filter(item => item && typeof item.problemCount === 'number' && item.problemCount > 0)
+            .sort((a, b) => b.problemCount - a.problemCount)
+          const names = sorted.map(item => item.tagName && item.tagName.trim() ? item.tagName : '未标记')
+          const values = sorted.map(item => item.problemCount)
+          // 若无数据，显示占位
+          if (names.length === 0) {
+            names.push('无标签数据')
+            values.push(0)
+          }
+          this.tagBarOptions.xAxis.data = names
+          this.tagBarOptions.series[0].data = values
+        }
+      } catch (error) {
+        console.error('获取题目标签分布失败:', error)
+        this.$message.error('获取题目标签分布失败')
       }
     },
 
@@ -494,7 +529,11 @@ export default {
     },
     async handleMenuSelect(index) {
       this.activeMenu = index
-      if (index === 'statistics') {
+      if (index === 'overview') {
+        await this.loadOverviewData()
+        await this.loadDifficultyDistribution()
+        await this.loadTagDistribution()
+      } else if (index === 'statistics') {
         await this.loadStatistics()
       }
     },
@@ -944,6 +983,28 @@ export default {
   border-radius: 8px;
   margin-bottom: 20px;
   box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+}
+
+/* 修改图表容器的样式和间距 */
+.chart-container-wrapper {
+  margin-top: 30px;
+  margin-bottom: 30px;
+}
+
+.chart-container {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
+  margin-bottom: 20px;
+}
+
+.chart-container h4 {
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #606266;
+  font-weight: 500;
 }
 
 /* 响应式布局 */

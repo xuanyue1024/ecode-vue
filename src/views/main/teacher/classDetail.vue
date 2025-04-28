@@ -89,6 +89,33 @@
                 </div>
               </div>
             </div>
+            
+            <!-- 添加题目难度和标签分布图 -->
+            <div class="chart-container-wrapper">
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <div class="chart-container">
+                    <h4>题目难度分布</h4>
+                    <v-chart 
+                      :options="difficultyPieOptions" 
+                      style="width: 100%; height: 300px;"
+                      autoresize>
+                    </v-chart>
+                  </div>
+                </el-col>
+                <el-col :span="12">
+                  <div class="chart-container">
+                    <h4>题目标签分布</h4>
+                    <v-chart 
+                      ref="tagBarChart" 
+                      :options="tagBarOptions" 
+                      style="width: 100%; height: 300px;"
+                      autoresize>
+                    </v-chart>
+                  </div>
+                </el-col>
+              </el-row>
+            </div>
           </el-card>
         </div>
 
@@ -439,7 +466,7 @@
 </template>
 
 <script>
-import { getTeacherClassMembers, getClassProblemPage, addProblemToClass, removeProblemFromClass, getTeacherClassProblemInfo, getClassProblemPassRate, getClassStudentRank } from '@/api/class'
+import { getTeacherClassMembers, getClassProblemPage, addProblemToClass, removeProblemFromClass, getTeacherClassProblemInfo, getClassProblemPassRate, getClassStudentRank, getTeacherClassProblemDifficultyNum, getTeacherClassProblemTagNum } from '@/api/class'
 import { getProblemPage } from '@/api/problem'
 import { getUserInfo } from '@/api/user'
 import { formatDate } from '@/utils/date'
@@ -447,6 +474,7 @@ import { checkPdfExists, getKnowledgeBasePdfUrl } from '@/api/ai'
 import { uploadFileRequest } from '@/utils/request'
 import ECharts from 'vue-echarts'
 import 'echarts/lib/chart/bar'
+import 'echarts/lib/chart/pie'
 import 'echarts/lib/component/tooltip'
 import 'echarts/lib/component/title'
 import 'echarts/lib/component/legend'
@@ -649,6 +677,96 @@ export default {
             }
           }
         ]
+      },
+      // 题目难度分布饼图配置
+      difficultyPieOptions: {
+        title: {
+          text: '题目难度分布',
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'item',
+          formatter: '{a} <br/>{b}: {c} ({d}%)'
+        },
+        legend: {
+          orient: 'vertical',
+          left: 10,
+          top: 'center',
+          data: ['简单', '中等', '困难']
+        },
+        color: ['#67C23A', '#E6A23C', '#F56C6C'],
+        series: [
+          {
+            name: '难度分布',
+            type: 'pie',
+            radius: ['40%', '70%'],
+            avoidLabelOverlap: false,
+            label: {
+              show: false,
+              position: 'center'
+            },
+            emphasis: {
+              label: {
+                show: true,
+                fontSize: '16',
+                fontWeight: 'bold'
+              }
+            },
+            labelLine: {
+              show: false
+            },
+            data: []
+          }
+        ]
+      },
+      
+      // 题目标签分布柱状图配置
+      tagBarOptions: {
+        title: {
+          text: '题目标签分布',
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow'
+          }
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '10%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          data: [],
+          axisLabel: {
+            interval: 0,
+            rotate: 30,
+            formatter: function(value) {
+              return value.length > 10 ? value.slice(0, 10) + '...' : value
+            }
+          }
+        },
+        yAxis: {
+          type: 'value',
+          name: '题目数量'
+        },
+        series: [
+          {
+            name: '题目数量',
+            type: 'bar',
+            data: [],
+            itemStyle: {
+              color: '#409EFF'
+            },
+            label: {
+              show: true,
+              position: 'top'
+            }
+          }
+        ]
       }
     }
   },
@@ -677,6 +795,10 @@ export default {
     this.initData()
     this.getUserDetails()
 
+    // 加载难度分布和标签分布数据
+    this.loadDifficultyDistribution()
+    this.loadTagDistribution()
+
     // 如果是知识库页面，检查PDF文件是否存在
     if (this.activeMenu === 'knowledgeBase') {
       this.checkPdfExistence()
@@ -690,7 +812,10 @@ export default {
     },
     async handleMenuSelect(index) {
       this.activeMenu = index
-      if (index === 'knowledgeBase') {
+      if (index === 'overview') {
+        await this.loadDifficultyDistribution()
+        await this.loadTagDistribution()
+      } else if (index === 'knowledgeBase') {
         await this.checkPdfExistence()
       } else if (index === 'problemRank') {
         await this.loadProblemPassRate()
@@ -764,7 +889,6 @@ export default {
               return problem
             })
           )
-
           this.problemList = problemsWithTags
         }
       } catch (error) {
@@ -819,7 +943,6 @@ export default {
               return problem
             })
           )
-
           this.availableProblems = problemsWithTags
         }
       } catch (error) {
@@ -929,7 +1052,6 @@ export default {
             return problem
           }
         })
-        
         this.studentProblemList = await Promise.all(promises)
       } catch (error) {
         console.error('获取学生详情失败:', error)
@@ -981,12 +1103,10 @@ export default {
         this.pdfLoading = false
       }
     },
-    
     viewPdf() {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token') || ''
       window.open(`${this.pdfUrl}?token=${token}`, '_blank')
     },
-    
     downloadPdf() {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token') || ''
       const a = document.createElement('a')
@@ -996,22 +1116,18 @@ export default {
       a.click()
       document.body.removeChild(a)
     },
-    
     showUploadDialog() {
       this.uploadDialogVisible = true
       this.fileList = []
     },
-    
     beforePdfUpload(file) {
       const isPdf = file.type === 'application/pdf'
       
       if (!isPdf) {
         this.$message.error('只能上传PDF文件!')
       }
-      
       return isPdf
     },
-    
     async handlePdfUpload({ file }) {
       try {
         const url = `/api/user/ai/pdf/upload/${this.classInfo.id}`
@@ -1032,7 +1148,6 @@ export default {
     // 加载题目通过率排行榜数据
     async loadProblemPassRate() {
       if (!this.classInfo.id) return
-      
       this.problemRankLoading = true
       try {
         const res = await getClassProblemPassRate(this.classInfo.id)
@@ -1049,7 +1164,6 @@ export default {
         this.problemRankLoading = false
       }
     },
-    
     // 更新题目通过率图表
     updateProblemPassRateChart() {
       // 按通过率排序
@@ -1069,7 +1183,6 @@ export default {
         ]
       }
     },
-    
     // 格式化百分比
     percentFormat(percentage) {
       return percentage + '%'
@@ -1077,7 +1190,6 @@ export default {
     // 加载学生成绩排名数据
     async loadStudentRank() {
       if (!this.classInfo.id) return
-      
       this.studentRankLoading = true
       try {
         const res = await getClassStudentRank(this.classInfo.id)
@@ -1094,7 +1206,6 @@ export default {
         this.studentRankLoading = false
       }
     },
-    
     // 更新学生成绩排名图表
     updateStudentRankChart() {
       // 按平均分排序
@@ -1112,6 +1223,52 @@ export default {
             data: sortedStudents.map(student => student.avgScore)
           }
         ]
+      }
+    },
+    async loadDifficultyDistribution() {
+      try {
+        const res = await getTeacherClassProblemDifficultyNum(this.classInfo.id)
+        if (res.data.code === 200) {
+          const difficultyData = res.data.data || []
+          
+          // 转换数据格式为图表所需格式
+          const chartData = difficultyData.map(item => ({
+            name: item.difficulty,
+            value: item.problemNum
+          }))
+          this.difficultyPieOptions.series[0].data = chartData
+          
+          // 更新图例数据
+          this.difficultyPieOptions.legend.data = chartData.map(item => item.name)
+        }
+      } catch (error) {
+        console.error('获取题目难度分布失败:', error)
+        this.$message.error('获取题目难度分布失败')
+      }
+    },
+    async loadTagDistribution() {
+      try {
+        const res = await getTeacherClassProblemTagNum(this.classInfo.id)
+        if (res.data.code === 200) {
+          let tagData = res.data.data
+          if (!Array.isArray(tagData)) tagData = []
+          // 只保留有数量的标签
+          const sorted = tagData
+            .filter(item => item && typeof item.problemCount === 'number' && item.problemCount > 0)
+            .sort((a, b) => b.problemCount - a.problemCount)
+          const names = sorted.map(item => item.tagName && item.tagName.trim() ? item.tagName : '未标记')
+          const values = sorted.map(item => item.problemCount)
+          // 若无数据，显示占位
+          if (names.length === 0) {
+            names.push('无标签数据')
+            values.push(0)
+          }
+          this.tagBarOptions.xAxis.data = names
+          this.tagBarOptions.series[0].data = values
+        }
+      } catch (error) {
+        console.error('获取题目标签分布失败:', error)
+        this.$message.error('获取题目标签分布失败')
       }
     }
   }
@@ -1437,5 +1594,25 @@ export default {
 
 .table-container {
   margin-top: 30px;
+}
+
+.chart-container-wrapper {
+  margin-top: 30px;
+}
+
+.chart-container {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
+  margin-bottom: 20px;
+}
+
+.chart-container h4 {
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #606266;
+  font-weight: 500;
 }
 </style>
