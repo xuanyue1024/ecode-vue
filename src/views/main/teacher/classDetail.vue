@@ -250,7 +250,6 @@
         <div v-show="activeMenu === 'problemRank'" class="content-section">
           <el-card v-loading="problemRankLoading">
             <div class="statistics-content">
-              <h3>题目通过率排行榜</h3>
               <div class="charts-container">
                 <div class="chart-item">
                   <v-chart 
@@ -279,7 +278,7 @@
                     <el-table-column label="通过率">
                       <template slot-scope="scope">
                         <el-progress 
-                          :percentage="parseFloat((scope.row.passRate * 100).toFixed(2))"
+                          :percentage="parseFloat((scope.row.passRate).toFixed(2))"
                           :format="percentFormat">
                         </el-progress>
                       </template>
@@ -293,7 +292,7 @@
           <!-- 学生成绩排名 -->
           <el-card v-loading="studentRankLoading" style="margin-top: 20px;">
             <div class="statistics-content">
-              <h3>学生成绩排名</h3>
+              <!-- <h3>学生成绩排名</h3> -->
               <div class="charts-container">
                 <div class="chart-item">
                   <v-chart 
@@ -562,7 +561,7 @@ export default {
           },
           formatter: function(params) {
             const data = params[0]
-            return `${data.name}<br/>通过率：${(data.value * 100).toFixed(2)}%`
+            return `${data.name}<br/>通过率：${(data.value ).toFixed(2)}%`
           }
         },
         grid: {
@@ -589,10 +588,10 @@ export default {
           type: 'value',
           name: '通过率',
           min: 0,
-          max: 1,
+          max: 100,
           axisLabel: {
             formatter: function(value) {
-              return (value * 100).toFixed(0) + '%'
+              return (value).toFixed(0) + '%'
             }
           }
         },
@@ -613,7 +612,7 @@ export default {
               show: true,
               position: 'top',
               formatter: function(params) {
-                return (params.value * 100).toFixed(0) + '%'
+                return (params.value).toFixed(0) + '%'
               }
             }
           }
