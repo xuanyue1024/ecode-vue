@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <link rel="icon" href="<%= BASE_URL %>favicon.ico">
-    <title><%= htmlWebpackPlugin.options.title %></title>
+    <title>智联学堂·码盾云析</title>
   </head>
   <body>
     <noscript>
@@ -13,5 +13,16 @@
     </noscript>
     <div id="app"></div>
     <!-- built files will be auto injected -->
+    <script>
+      // 保证运行时所有页面标题都为“智联学堂·码盾云析”
+      document.title = '智联学堂·码盾云析';
+      // 监听 title 变化，强制覆盖
+      const observer = new MutationObserver(() => {
+        if (document.title !== '智联学堂·码盾云析') {
+          document.title = '智联学堂·码盾云析';
+        }
+      });
+      observer.observe(document.querySelector('title'), { childList: true });
+    </script>
   </body>
 </html>
