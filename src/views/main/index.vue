@@ -6,7 +6,7 @@
       <div class="header-left">
         <i class="el-icon-menu toggle-icon" @click="toggleCollapse"></i>
         <div class="divider"></div>
-        <h2 class="page-title">ecode编程实践平台</h2>
+        <h2 class="page-title">智联学堂·码盾云析</h2>
       </div>
       <div class="header-right">
         <el-dropdown trigger="click" @command="handleCommand">
