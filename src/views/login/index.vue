@@ -45,7 +45,7 @@
                 </el-form>
               </div>
               <div v-if="form.loginType == 'qr'"><img width="250px"
-                  src="data:image/png;base64,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"
+                  src="data:image/png;base64,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"
                   alt=""></div>
             </div>
           </div>
@@ -53,13 +53,30 @@
           <div id="register" v-if="isLoginPage == false" style="margin-top: 0px;">
             <span class="login-toggle">注册</span>
             <el-form ref="regForm" :model="regForm" label-width="80px" :rules="rules">
-              <el-form-item label="用户名" prop="username">
-                <el-input placeholder="请输入用户名" prefix-icon="el-icon-user" v-model="regForm.username"></el-input>
-              </el-form-item>
+              <el-row :gutter="10">
+                <el-col :span="12">
+                  <el-form-item label="用户名" prop="username">
+                    <el-input placeholder="请输入用户名" prefix-icon="el-icon-user" v-model="regForm.username"></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                    <el-form-item prop="role" label-width="0">
+                    <el-select v-model="regForm.role" placeholder="请选择角色" style="width: 100%;">
+                      <el-option label="学生" value="STUDENT"></el-option>
+                      <el-option label="老师" value="TEACHER"></el-option>
+                    </el-select>
+                    </el-form-item>
+                </el-col>
+              </el-row>
               <el-form-item label="邮箱" prop="email">
-                <el-input placeholder="请输入邮箱" prefix-icon="el-icon-message" v-model="regForm.email"><el-button
-                    slot="append" @click="getEmailCode()" :loading="codeLoad" :disabled="codeDisabled">{{
-                      emailCodeButtonText }}</el-button></el-input>
+                <el-input placeholder="请输入邮箱" prefix-icon="el-icon-message" v-model="regForm.email">
+                  <el-button
+                    slot="append"
+                    @click="getEmailCode()"
+                    :loading="codeLoad"
+                    :disabled="codeDisabled"
+                  >{{ emailCodeButtonText }}</el-button>
+                </el-input>
               </el-form-item>
               <el-form-item label="密码" prop="password">
                 <el-input placeholder="请输入密码" prefix-icon="el-icon-lock" v-model="regForm.password"
@@ -111,7 +128,9 @@ export default {
         username: '',
         email: '',
         emailCode: '',
-        password: ''
+        password: '',
+        role: ''//注册用户角色STUDENT，TEACHER
+
       },
       confirmPassword: '', // 单独的确认密码
       loginBtn: {
@@ -163,6 +182,11 @@ export default {
           required: true,
           message: '请输入邮箱',
           trigger: 'blur'
+        }],
+        role: [{
+          required: true,
+          message: '请选择角色',
+          trigger: 'change'
         }]
       },
       loginLoad: false, // 登录注册加载

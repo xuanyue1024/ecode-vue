@@ -137,7 +137,7 @@
               <el-table-column prop="username" label="用户名"></el-table-column>
               <el-table-column prop="name" label="姓名"></el-table-column>
               <el-table-column prop="email" label="邮箱"></el-table-column>
-              <el-table-column prop="totalScore" label="总得分"></el-table-column>
+              <!-- <el-table-column prop="totalScore" label="总得分"></el-table-column>
               <el-table-column label="完成率" width="200">
                 <template slot-scope="scope">
                   <el-progress 
@@ -145,7 +145,7 @@
                     :format="percentageFormat">
                   </el-progress>
                 </template>
-              </el-table-column>
+              </el-table-column> -->
             </el-table>
 
             <div class="pagination">
