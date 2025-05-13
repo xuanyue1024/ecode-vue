@@ -347,6 +347,7 @@
                   <el-button type="primary" @click="viewPdf">查看PDF</el-button>
                   <el-button type="success" @click="downloadPdf">下载PDF</el-button>
                   <el-button type="warning" @click="showUploadDialog">重新上传</el-button>
+                  <el-button type="danger" @click="deletePdfFile">删除PDF</el-button>
                 </div>
               </div>
               
@@ -469,7 +470,7 @@ import { getTeacherClassMembers, getClassProblemPage, addProblemToClass, removeP
 import { getProblemPage } from '@/api/problem'
 import { getUserInfo } from '@/api/user'
 import { formatDate } from '@/utils/date'
-import { checkPdfExists, getKnowledgeBasePdfUrl } from '@/api/ai'
+import { checkPdfExists, getKnowledgeBasePdfUrl, uploadPdf, deletePdf } from '@/api/ai'
 import { uploadFileRequest } from '@/utils/request'
 import ECharts from 'vue-echarts'
 import 'echarts/lib/chart/bar'
@@ -1091,9 +1092,9 @@ export default {
       this.pdfLoading = true
       try {
         const response = await checkPdfExists(this.classInfo.id)
-        this.hasPdf = response.data.data === true
+        this.hasPdf = response.data.code === 200 && response.data.data !== null
         if (this.hasPdf) {
-          this.pdfUrl = getKnowledgeBasePdfUrl(this.classInfo.id)
+          this.pdfUrl = response.data.data.url
         }
       } catch (error) {
         console.error('检查PDF文件存在失败:', error)
@@ -1104,12 +1105,13 @@ export default {
     },
     viewPdf() {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token') || ''
-      window.open(`${this.pdfUrl}?token=${token}`, '_blank')
+      window.open(`${this.pdfUrl}`, '_blank')
     },
     downloadPdf() {
+    
       const token = localStorage.getItem('token') || sessionStorage.getItem('token') || ''
       const a = document.createElement('a')
-      a.href = `${this.pdfUrl}?token=${token}`
+      a.href = `${this.pdfUrl}`
       a.download = `${this.classInfo.name}-学习资料.pdf`
       document.body.appendChild(a)
       a.click()
@@ -1128,20 +1130,33 @@ export default {
       return isPdf
     },
     async handlePdfUpload({ file }) {
+  try {
+    const res = await uploadPdf(this.classInfo.id, file)
+    
+    if (res.code === 200) {
+      this.$message.success('PDF文件上传成功')
+      this.uploadDialogVisible = false
+      await this.checkPdfExistence()
+    } else {
+      this.$message.error(res.msg || '上传失败')
+    }
+  } catch (error) {
+    console.error('上传PDF文件失败:', error)
+    this.$message.error('上传PDF文件失败')
+  }
+},
+    async deletePdfFile() {
       try {
-        const url = `/api/user/ai/pdf/upload/${this.classInfo.id}`
-        const res = await uploadFileRequest(url, file)
-        
+        const res = await deletePdf(this.classInfo.id)
         if (res.data.code === 200) {
-          this.$message.success('PDF文件上传成功')
-          this.uploadDialogVisible = false
-          await this.checkPdfExistence()
+          this.$message.success('PDF文件删除成功')
+          this.hasPdf = false
         } else {
-          this.$message.error(res.data.msg || '上传失败')
+          this.$message.error(res.data.msg || '删除失败')
         }
       } catch (error) {
-        console.error('上传PDF文件失败:', error)
-        this.$message.error('上传PDF文件失败')
+        console.error('删除PDF文件失败:', error)
+        this.$message.error('删除PDF文件失败')
       }
     },
     // 加载题目通过率排行榜数据

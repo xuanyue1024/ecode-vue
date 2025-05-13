@@ -22,12 +22,12 @@ export function deleteChatHistory(type: string, chatId: string) {
 
 // 获取知识库PDF文件URL
 export function getKnowledgeBasePdfUrl(classId: string) {
-  return `/api/user/ai/pdf/file/${classId}`;
+  return `/api/teacher/ai/pdf/file/${classId}`;
 }
 
-// 检查知识库PDF文件是否存在
+// 检查知识库PDF文件是否存在 - 通过下载接口判断
 export function checkPdfExists(classId: string) {
-  return getRequest(`/api/user/ai/pdf/exit/${classId}`);
+  return getRequest(`/api/teacher/ai/pdf/file/${classId}`);
 }
 
 // 上传PDF文件
@@ -35,11 +35,16 @@ export function uploadPdf(classId: string, file: File) {
   const formData = new FormData();
   formData.append('file', file);
   
-  return fetch(`/api/user/ai/pdf/upload/${classId}`, {
+  return fetch(`/api/teacher/ai/pdf/upload/${classId}`, {
     method: 'POST',
     body: formData,
     headers: {
       'token': localStorage.getItem('token') || sessionStorage.getItem('token') || ''
     }
   }).then(response => response.json());
+}
+
+// 删除PDF文件
+export function deletePdf(classId: string) {
+  return deleteRequest(`/api/teacher/ai/pdf/delete/${classId}`, null);
 }
